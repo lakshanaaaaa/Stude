@@ -1,0 +1,323 @@
+Title: Build a Full-Stack Student Coding Performance Analytics Platform
+
+➡️ PROJECT DESCRIPTION
+
+Create a full-stack web application called:
+
+“Coding Performance Analytics Dashboard”
+
+This platform is for 54 students and selected faculty members, to:
+
+View their coding progress across LeetCode, CodeChef, CodeForces, etc
+
+Track contest ratings
+
+Track problem-solving stats
+
+View badges
+
+Maintain student portfolios
+
+Edit their coding profile IDs
+
+Allow only authenticated users to view or edit data
+
+Provide analytics dashboards and leaderboards
+
+Build everything in React + Tailwind (frontend) and Node.js + Express + MongoDB + JWT (backend).
+
+⭐ PHASE 1 — Authentication + Home UI + Student Listing
+Requirements
+
+Implement JWT authentication with MongoDB.
+
+Only faculty (3 predefined accounts) and students (54) can log in.
+
+Faculty can view only.
+
+Students can view and edit only their own profile.
+
+Homepage shows:
+
+Top Coder of the Week section
+
+List of all 54 students displayed as cards
+
+Student cards show:
+
+Name
+
+Username
+
+Click to open their dashboard (Phase 2)
+
+Technology Requirements
+
+Frontend:
+
+React + Vite
+
+TailwindCSS
+
+Axios
+
+React Router
+
+Chart.js or Recharts
+
+Backend:
+
+Node.js + Express
+
+Mongoose (MongoDB)
+
+bcrypt
+
+jsonwebtoken (JWT)
+
+Cookie-parser
+
+dotenv
+
+⭐ PHASE 2 — Student Full Analytics Dashboard
+
+When a user clicks a student:
+
+Student Profile Page Must Show:
+1️⃣ Basic Info Section
+
+Name
+
+Department
+
+Register Number
+
+Email
+
+LinkedIn link
+
+GitHub link
+
+Resume drive link
+
+2️⃣ Coding Accounts Section
+
+Show main account IDs
+
+Show sub accounts (4–5 allowed)
+
+Each account includes:
+
+Platform (LeetCode / CodeChef / CodeForces / GFG / HackerRank / CodeStudio)
+
+Username
+
+Direct link
+
+3️⃣ Coding Analytics Section
+
+(Use dummy data first; real API/scraping later)
+
+A. Problem Solving Analytics
+
+Total problems solved
+
+Per-platform stats
+
+Graph: Problems solved over time
+
+Pie chart: Difficulty distribution
+
+B. Contest Analytics
+
+Merged rating graph for main + sub accounts
+
+Contest history timeline
+
+Highest rating
+
+Current rating
+
+Total contests attended
+
+C. Badges Section
+
+Grid of badges for all platforms.
+
+UI Requirements
+
+Clean dashboard UI
+
+Cards + graphs + grids
+
+Responsive layout
+
+Tailwind utility classes
+
+⭐ PHASE 3 — Student Self-Editing Portal
+Workflows
+
+Admin assigns each student a username + password.
+
+Students log in and can edit only their own profile.
+
+Students can update:
+
+Email
+
+Department
+
+LinkedIn
+
+GitHub
+
+Resume Link
+
+Main coding IDs
+
+Sub coding IDs
+
+Faculty accounts cannot edit anything.
+
+Security
+
+Validate fields before saving
+
+Students cannot modify other accounts
+
+⭐⭐ BACKEND REQUIREMENTS ⭐⭐
+MongoDB Collections
+1️⃣ User Collection
+{
+  username: String,
+  password: String,
+  role: "faculty" | "student",
+}
+
+2️⃣ Student Collection
+{
+  name: String,
+  username: String,
+  dept: String,
+  regNo: String,
+  email: String,
+  linkedin: String,
+  github: String,
+  resume_link: String,
+  main_accounts: [
+    { platform: String, username: String }
+  ],
+  sub_accounts: [
+    { platform: String, username: String }
+  ]
+}
+
+Authentication API
+
+POST /api/auth/login → returns JWT token
+
+GET /api/auth/me → returns user details
+
+Protected Routes
+
+GET /api/students → faculty view all
+
+GET /api/student/:username → returns one student's data
+
+PATCH /api/student/:username → only student can edit their own data
+
+Use middleware:
+
+authMiddleware(["faculty"])
+authMiddleware(["student"])
+
+⭐⭐ FRONTEND REQUIREMENTS ⭐⭐
+Pages to Build
+
+/login – Login page
+
+/dashboard – Displays
+
+Top coder of the week
+
+List of 54 students
+
+/student/:username – Student Complete Analytics Dashboard
+
+/edit-profile – Only for students
+
+Components Needed
+
+StudentCard
+
+ProfileHeader
+
+AccountCard
+
+ProblemStatsCard
+
+ContestStatsCard
+
+BadgeGrid
+
+EditProfileForm
+
+NavigationBar
+
+⭐⭐ IMPORTANT INSTRUCTIONS FOR AI TOOL ⭐⭐
+When generating code:
+
+Use React functional components
+
+Use TailwindCSS for all styling
+
+Use React Router v6
+
+Use Axios for API calls
+
+Structure folders like:
+
+/frontend
+  /src
+    /components
+    /pages
+    /data
+    /utils
+/backend
+  /models
+  /routes
+  /controllers
+  /middleware
+  /config
+
+Add dummy data first for analytics → Integrate scraping later.
+⭐⭐ ADDITIONAL REQUIREMENT ⭐⭐
+
+Please automatically generate:
+
+✔ Student data seeding script
+✔ Faculty user seeding script
+✔ Full CRUD APIs for student profile
+✔ JWT authentication middleware
+✔ Protected routes in backend
+✔ Graph placeholders in frontend
+✔ Clean UI with dashboard layout
+🎯 FINAL OUTPUT EXPECTATION
+
+Generate a fully structured project (frontend + backend) with:
+
+Authentication
+
+Student listing
+
+Student analytics dashboard
+
+Edit profile system
+
+MongoDB models
+
+API routes
+
+Clean UI
+
+Ready for scraping integration later
