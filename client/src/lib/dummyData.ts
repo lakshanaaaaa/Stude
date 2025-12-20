@@ -1,51 +1,90 @@
 import type { Student, StudentAnalytics, ProblemStats, ContestStats, Badge, CodingPlatform } from "@shared/schema";
 
-const departments = ["CSE", "ECE", "IT", "EEE", "MECH", "CIVIL"];
 const avatarColors = [
   "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", 
   "bg-pink-500", "bg-cyan-500", "bg-indigo-500", "bg-teal-500",
   "bg-rose-500", "bg-amber-500", "bg-emerald-500", "bg-violet-500"
 ];
 
-const firstNames = [
-  "Arun", "Bharath", "Chitra", "Deepak", "Esha", "Farhan", "Gokul", "Hari",
-  "Indira", "Jayesh", "Karthik", "Lakshmi", "Mohan", "Nisha", "Om", "Priya",
-  "Rahul", "Sanjay", "Tara", "Uma", "Vijay", "Yamini", "Zara", "Aditya",
-  "Bhavana", "Chirag", "Divya", "Eshwar", "Fathima", "Ganesh", "Hemant",
-  "Ishaan", "Jyoti", "Krishna", "Lavanya", "Madhav", "Neha", "Omkar", "Pallavi",
-  "Ravi", "Sneha", "Tanvi", "Uday", "Varun", "Wafa", "Yash", "Ananya",
-  "Bala", "Chandni", "Dhruv", "Ekta", "Firoz", "Gayathri", "Harini", "Irfan"
-];
-
-const lastNames = [
-  "Kumar", "Sharma", "Patel", "Singh", "Reddy", "Nair", "Iyer", "Menon",
-  "Rao", "Gupta", "Joshi", "Verma", "Pillai", "Das", "Roy", "Mehta",
-  "Kapoor", "Srinivasan", "Mukherjee", "Chatterjee", "Banerjee", "Dutta"
-];
-
 function randomChoice<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function generateUsername(firstName: string, index: number): string {
-  return `${firstName.toLowerCase()}${index + 1}`;
+function makeUsername(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, "");
 }
 
+// --------------------------------------------
+// REAL STUDENT DATA
+// --------------------------------------------
+const realStudents = [
+  { name: "Aadhisankar A", dept: "CSE" },
+  { name: "Aagnesh Shifak", dept: "AI&DS" },
+  { name: "Aakash M", dept: "CSE" },
+  { name: "Ahamed Ammar A", dept: "CSBS" },
+  { name: "Ayishathul Hazeena S", dept: "CSBS" },
+  { name: "Blessan Corley A", dept: "AI&DS" },
+  { name: "Dhaanish Nihaal M", dept: "CSE(AI&ML)" },
+  { name: "Dhanyathaa M", dept: "CSE(AI&ML)" },
+  { name: "Dharaneesh S K", dept: "AI&DS" },
+  { name: "Dhinakaran MS", dept: "CSE(AI&ML)" },
+  { name: "Dinesh Madhavan M", dept: "AI&DS" },
+  { name: "Dinesh S", dept: "CSBS" },
+  { name: "Divyadharshini M", dept: "CSBS" },
+  { name: "David Vensilin R", dept: "CSE(AI&ML)" },
+  { name: "Gowsika", dept: "CSBS" },
+  { name: "Harini C", dept: "AI&DS" },
+  { name: "Harishwar R", dept: "CSE(AI&ML)" },
+  { name: "Karthick M", dept: "CSE(AI&ML)" },
+  { name: "Kaviya K", dept: "CSBS" },
+  { name: "Lakshana S", dept: "CSBS" },
+  { name: "Logesh", dept: "AI&DS" },
+  { name: "Mannam Ganesh Babu", dept: "AI&DS" },
+  { name: "Mohanraj S", dept: "CSE(AI&ML)" },
+  { name: "Mohamed Asharaf S", dept: "AI&DS" },
+  { name: "Nizath Mohammed M", dept: "AI&DS" },
+  { name: "Padmadev D", dept: "CSE" },
+  { name: "Pandiharshan K", dept: "CSE(AI&ML)" },
+  { name: "Pawan R", dept: "AI&DS" },
+  { name: "Prakash B", dept: "CSBS" },
+  { name: "Pranav P", dept: "AI&DS" },
+  { name: "Prasanna Venkataraman S", dept: "AI&DS" },
+  { name: "Raga T", dept: "CSE(AI&ML)" },
+  { name: "Ragul VL", dept: "AI&DS" },
+  { name: "Rajadurai R", dept: "CSBS" },
+  { name: "Robert Mithran N", dept: "CSBS" },
+  { name: "Sabari Yuhendhran M", dept: "CSBS" },
+  { name: "Sanjaiveeran S", dept: "CSE(AI&ML)" },
+  { name: "Santhosh KV", dept: "CSE" },
+  { name: "Sarikaa Shree V", dept: "CSE(AI&ML)" },
+  { name: "Sharvesh L", dept: "CSBS" },
+  { name: "Shanmugam A", dept: "CSE(AI&ML)" },
+  { name: "Siby R", dept: "CSE" },
+  { name: "Sobhika P M", dept: "CSBS" },
+  { name: "Sowmiya S R", dept: "CSBS" },
+  { name: "Sri Vishnu Vathan S", dept: "AI&DS" },
+  { name: "Sridharan I", dept: "CSE(AI&ML)" },
+  { name: "Steepan P", dept: "AI&DS" },
+  { name: "Vijay", dept: "CSE(AI&ML)" },
+  { name: "Vijesh A", dept: "AI&DS" },
+  { name: "Vinoth Kumar M", dept: "AI&DS" },
+  { name: "Vishwa D", dept: "AI&DS" },
+  { name: "Dhavamani A", dept: "CSE" }
+];
+
+// -------------------------------------------------
+// FIX 1: generateStudents() → REAL STUDENTS
+// -------------------------------------------------
 export function generateStudents(): Student[] {
-  const students: Student[] = [];
-  
-  for (let i = 0; i < 54; i++) {
-    const firstName = firstNames[i];
-    const lastName = randomChoice(lastNames);
-    const dept = randomChoice(departments);
-    const username = generateUsername(firstName, i);
-    
-    students.push({
-      id: `student-${i + 1}`,
-      name: `${firstName} ${lastName}`,
+  return realStudents.map((s, index) => {
+    const username = makeUsername(s.name);
+
+    return {
+      id: `student-${index + 1}`,
+      name: s.name,
       username,
-      dept,
-      regNo: `2021${dept}${String(i + 1).padStart(3, "0")}`,
+      dept: s.dept,
+      regNo: `2021${String(index + 1).padStart(3, "0")}`,
       email: `${username}@college.edu`,
       linkedin: `https://linkedin.com/in/${username}`,
       github: `https://github.com/${username}`,
@@ -59,31 +98,18 @@ export function generateStudents(): Student[] {
         { platform: "GeeksforGeeks", username: `${username}_gfg` },
       ],
       avatarColor: randomChoice(avatarColors),
-    });
-  }
-  
-  return students;
+    };
+  });
 }
 
+// -------------------------------------------------
+// FIX 2: generateStudentAnalytics() → KEEP SAME
+// -------------------------------------------------
 export function generateProblemStats(): ProblemStats {
   const easy = Math.floor(Math.random() * 200) + 50;
   const medium = Math.floor(Math.random() * 150) + 30;
   const hard = Math.floor(Math.random() * 50) + 10;
-  
-  const solvedOverTime: { date: string; count: number }[] = [];
-  let cumulative = 0;
-  const now = new Date();
-  
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now);
-    date.setMonth(date.getMonth() - i);
-    cumulative += Math.floor(Math.random() * 30) + 5;
-    solvedOverTime.push({
-      date: date.toISOString().slice(0, 7),
-      count: cumulative,
-    });
-  }
-  
+
   return {
     total: easy + medium + hard,
     easy,
@@ -97,67 +123,21 @@ export function generateProblemStats(): ProblemStats {
       HackerRank: Math.floor(Math.random() * 50) + 10,
       CodeStudio: Math.floor(Math.random() * 40) + 5,
     },
-    solvedOverTime,
+    solvedOverTime: [],
   };
 }
 
 export function generateContestStats(): ContestStats {
-  const highestRating = Math.floor(Math.random() * 1000) + 1200;
-  const currentRating = highestRating - Math.floor(Math.random() * 200);
-  
-  const ratingHistory: { date: string; rating: number; platform: CodingPlatform }[] = [];
-  const now = new Date();
-  let rating = 1000;
-  
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now);
-    date.setMonth(date.getMonth() - i);
-    rating += Math.floor(Math.random() * 100) - 30;
-    rating = Math.max(800, Math.min(rating, highestRating));
-    
-    ratingHistory.push({
-      date: date.toISOString().slice(0, 7),
-      rating,
-      platform: randomChoice(["LeetCode", "CodeForces", "CodeChef"] as CodingPlatform[]),
-    });
-  }
-  
   return {
-    currentRating,
-    highestRating,
-    totalContests: Math.floor(Math.random() * 50) + 10,
-    ratingHistory,
+    currentRating: 1500,
+    highestRating: 1700,
+    totalContests: 20,
+    ratingHistory: [],
   };
 }
 
 export function generateBadges(): Badge[] {
-  const badgeTypes = [
-    { name: "Problem Solver", icon: "target" },
-    { name: "Contest Master", icon: "trophy" },
-    { name: "Streak Keeper", icon: "flame" },
-    { name: "Early Bird", icon: "sun" },
-    { name: "Night Owl", icon: "moon" },
-    { name: "Speed Demon", icon: "zap" },
-  ];
-  
-  const platforms: CodingPlatform[] = ["LeetCode", "CodeForces", "CodeChef", "GeeksforGeeks"];
-  const badges: Badge[] = [];
-  
-  platforms.forEach((platform) => {
-    const numBadges = Math.floor(Math.random() * 3) + 1;
-    for (let i = 0; i < numBadges; i++) {
-      const badgeType = randomChoice(badgeTypes);
-      badges.push({
-        id: `${platform}-${badgeType.name}-${i}`,
-        name: badgeType.name,
-        platform,
-        icon: badgeType.icon,
-        level: Math.floor(Math.random() * 3) + 1,
-      });
-    }
-  });
-  
-  return badges;
+  return [];
 }
 
 export function generateStudentAnalytics(): StudentAnalytics {
@@ -168,8 +148,8 @@ export function generateStudentAnalytics(): StudentAnalytics {
   };
 }
 
-// Get top coder (student with highest rating)
 export function getTopCoder(students: Student[]): Student | undefined {
-  if (students.length === 0) return undefined;
-  return students[Math.floor(Math.random() * Math.min(5, students.length))];
+  if (!students || students.length === 0) return undefined;
+  return students[Math.floor(Math.random() * students.length)];
 }
+

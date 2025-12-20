@@ -18,7 +18,7 @@ import { Search, Users, Filter } from "lucide-react";
 import { generateStudentAnalytics, getTopCoder } from "@/lib/dummyData";
 import type { Student } from "@shared/schema";
 
-const departments = ["All", "CSE", "ECE", "IT", "EEE", "MECH", "CIVIL"];
+const departments = ["All", "CSE", "CSBS", "AI&DS", "CSE(AI&ML)"];
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
