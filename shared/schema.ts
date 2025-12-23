@@ -50,6 +50,27 @@ export const studentSchema = z.object({
   mainAccounts: z.array(codingAccountSchema),
   subAccounts: z.array(codingAccountSchema),
   avatarColor: z.string().optional(),
+  problemStats: z.object({
+    total: z.number().default(0),
+    easy: z.number().default(0),
+    medium: z.number().default(0),
+    hard: z.number().default(0),
+    platformStats: z.record(z.number()).default({}),
+    solvedOverTime: z.array(z.object({ date: z.string(), count: z.number() })).default([]),
+  }).optional(),
+  contestStats: z.object({
+    currentRating: z.number().default(0),
+    highestRating: z.number().default(0),
+    totalContests: z.number().default(0),
+    ratingHistory: z.array(z.object({ date: z.string(), rating: z.number(), platform: z.string() })).default([]),
+  }).optional(),
+  badges: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    platform: z.string(),
+    icon: z.string().default(""),
+    level: z.number().default(1),
+  })).optional(),
 });
 
 export const insertStudentSchema = studentSchema.omit({ id: true });

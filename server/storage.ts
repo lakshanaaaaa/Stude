@@ -202,4 +202,24 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use MongoDB if available, otherwise fall back to in-memory storage
+let storage: IStorage = new MemStorage();
+
+// Function to initialize MongoDB storage (called from server/index.ts)
+export async function initializeStorage() {
+  const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+  if (MONGODB_URI) {
+    try {
+      const { MongoStorage } = await import("./storage/mongodb");
+      storage = new MongoStorage();
+      console.log("✅ Using MongoDB storage");
+      return true;
+    } catch (error) {
+      console.log("⚠️  MongoDB not available, using in-memory storage");
+      return false;
+    }
+  }
+  return false;
+}
+
+export { storage };

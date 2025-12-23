@@ -26,6 +26,14 @@ export default function StudentProfile() {
 
   const analytics = useMemo(() => {
     if (!student) return null;
+    // Use scraped analytics if available, otherwise generate dummy data
+    if (student.problemStats && student.contestStats) {
+      return {
+        problemStats: student.problemStats,
+        contestStats: student.contestStats,
+        badges: student.badges || [],
+      };
+    }
     return generateStudentAnalytics();
   }, [student]);
 
