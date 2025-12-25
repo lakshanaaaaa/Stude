@@ -15,10 +15,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Users, Filter } from "lucide-react";
-import { generateStudentAnalytics, getTopCoder } from "@/lib/dummyData";
 import type { Student } from "@shared/schema";
 
 const departments = ["All", "CSE", "CSBS", "AI&DS", "CSE(AI&ML)"];
+
+// Helper function to get top coder based on actual problem stats
+function getTopCoder(students: Student[]): Student | undefined {
+  if (!students || students.length === 0) return undefined;
+  
+  return students.reduce((top, current) => {
+    const topTotal = top.problemStats?.total || 0;
+    const currentTotal = current.problemStats?.total || 0;
+    return currentTotal > topTotal ? current : top;
+  });
+}
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,11 +42,6 @@ export default function Dashboard() {
     if (!students || students.length === 0) return null;
     return getTopCoder(students);
   }, [students]);
-
-  const topCoderAnalytics = useMemo(() => {
-    if (!topCoder) return null;
-    return generateStudentAnalytics();
-  }, [topCoder]);
 
   const filteredStudents = useMemo(() => {
     if (!students) return [];
@@ -72,9 +77,16 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {topCoder && topCoderAnalytics && (
+            {topCoder && topCoder.problemStats && topCoder.contestStats && (
               <section>
-                <TopCoderCard student={topCoder} analytics={topCoderAnalytics} />
+                <TopCoderCard 
+                  student={topCoder} 
+                  analytics={{
+                    problemStats: topCoder.problemStats,
+                    contestStats: topCoder.contestStats,
+                    badges: topCoder.badges || [],
+                  }} 
+                />
               </section>
             )}
 

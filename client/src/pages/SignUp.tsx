@@ -22,52 +22,59 @@ import { useToast } from "@/hooks/use-toast";
 import { BarChart3, Loader2, Moon, Sun, Eye, EyeOff } from "lucide-react";
 import type { AuthResponse } from "@shared/schema";
 
-const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+const signUpSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
 
-export default function Login() {
+export default function SignUp() {
   const [, setLocation] = useLocation();
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
       username: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormData) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
+  const signUpMutation = useMutation({
+    mutationFn: async (data: SignUpFormData) => {
+      const { confirmPassword, ...signUpData } = data;
+      const response = await apiRequest("POST", "/api/auth/signup", { ...signUpData, role: "student" });
       return response as AuthResponse;
     },
     onSuccess: (data) => {
       login(data.token, data.user);
       toast({
-        title: "Welcome back!",
-        description: `Logged in as ${data.user.username}`,
+        title: "Account created!",
+        description: `Welcome ${data.user.username}!`,
       });
       setLocation("/dashboard");
     },
     onError: (error: Error) => {
       toast({
-        title: "Login failed",
-        description: error.message || "Invalid credentials. Please try again.",
+        title: "Sign up failed",
+        description: error.message || "Failed to create account. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data);
+  const onSubmit = (data: SignUpFormData) => {
+    signUpMutation.mutate(data);
   };
 
   return (
@@ -101,9 +108,9 @@ export default function Login() {
 
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-xl">Welcome back</CardTitle>
+              <CardTitle className="text-xl">Create an account</CardTitle>
               <CardDescription>
-                Sign in to access your dashboard
+                Sign up to get started
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -139,7 +146,7 @@ export default function Login() {
                             <Input 
                               type={showPassword ? "text" : "password"}
                               placeholder="Enter your password" 
-                              autoComplete="current-password"
+                              autoComplete="new-password"
                               {...field} 
                               data-testid="input-password"
                             />
@@ -164,20 +171,56 @@ export default function Login() {
                     )}
                   />
 
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input 
+                              type={showConfirmPassword ? "text" : "password"}
+                              placeholder="Confirm your password" 
+                              autoComplete="new-password"
+                              {...field} 
+                              data-testid="input-confirm-password"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              data-testid="button-toggle-confirm-password"
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="w-4 h-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <Button 
                     type="submit" 
                     className="w-full" 
                     size="lg"
-                    disabled={loginMutation.isPending}
-                    data-testid="button-login"
+                    disabled={signUpMutation.isPending}
+                    data-testid="button-signup"
                   >
-                    {loginMutation.isPending ? (
+                    {signUpMutation.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Signing in...
+                        Creating account...
                       </>
                     ) : (
-                      "Sign in"
+                      "Sign up"
                     )}
                   </Button>
                 </form>
@@ -187,9 +230,9 @@ export default function Login() {
 
           <div className="text-center text-sm">
             <p className="text-muted-foreground">
-              Don't have an account?{" "}
-              <Link href="/signup" className="text-primary hover:underline">
-                Sign up
+              Already have an account?{" "}
+              <Link href="/login" className="text-primary hover:underline">
+                Sign in
               </Link>
             </p>
           </div>
@@ -202,3 +245,6 @@ export default function Login() {
     </div>
   );
 }
+
+
+

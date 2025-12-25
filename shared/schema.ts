@@ -21,7 +21,7 @@ export const codingAccountSchema = z.object({
 export type CodingAccount = z.infer<typeof codingAccountSchema>;
 
 // User roles
-export const userRoles = ["faculty", "student"] as const;
+export const userRoles = ["admin", "faculty", "student"] as const;
 export type UserRole = typeof userRoles[number];
 
 // User schema for authentication
@@ -30,6 +30,7 @@ export const userSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
   role: z.enum(userRoles),
+  isOnboarded: z.boolean().default(false),
 });
 
 export const insertUserSchema = userSchema.omit({ id: true });
@@ -118,6 +119,7 @@ export interface AuthResponse {
     id: string;
     username: string;
     role: UserRole;
+    isOnboarded: boolean;
   };
 }
 

@@ -6,6 +6,9 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<Omit<User, "password">[]>;
+  updateUser(id: string, data: Partial<Omit<User, "id" | "password">>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<boolean>;
   getAllStudents(): Promise<Student[]>;
   getStudentByUsername(username: string): Promise<Student | undefined>;
   createStudent(student: InsertStudent): Promise<Student>;
@@ -33,28 +36,37 @@ export class MemStorage implements IStorage {
   }
 
   private async seedData() {
+    // ---------------- ADMIN SEEDING ----------------
+    const adminPassword = await bcrypt.hash("admin123", 10);
+    const adminUser: User = {
+      id: "admin-1",
+      username: "admin",
+      password: adminPassword,
+      role: "admin",
+      isOnboarded: true,
+    };
+    this.users.set(adminUser.id, adminUser);
 
     // ---------------- FACULTY SEEDING ----------------
+    const facultyList = [
+      { name: "Dr. MahaLakshmi", username: "mahalakshmi", password: "faculty123", dept: "CTP" },
+      { name: "Sachin Nandha Sabarish", username: "sachin", password: "faculty123", dept: "CTP" },
+      { name: "LakshanaAd", username: "lakshanaad", password: "faculty123", dept: "CTP" }
+    ];
 
-  const facultyList = [
-    { name: "Dr. MahaLakshmi", username: "mahalakshmi", password: "faculty123", dept: "CTP" },
-    { name: "Sachin Nandha Sabarish", username: "sachin", password: "faculty123", dept: "CTP" },
-    { name: "LakshanaAd", username: "lakshanaad", password: "faculty123", dept: "CTP" }
-  ];
+    for (let i = 0; i < facultyList.length; i++) {
+      const f = facultyList[i];
+      const hashedPassword = await bcrypt.hash(f.password, 10);
 
-
-  for (let i = 0; i < facultyList.length; i++) {
-    const f = facultyList[i];
-    const hashedPassword = await bcrypt.hash(f.password, 10);
-
-    const facultyUser: User = {
-      id: `faculty-${i + 1}`,
-      username: f.username,
-      password: hashedPassword,
-      role: "faculty",
-  };
-  this.users.set(facultyUser.id, facultyUser);
-}
+      const facultyUser: User = {
+        id: `faculty-${i + 1}`,
+        username: f.username,
+        password: hashedPassword,
+        role: "faculty",
+        isOnboarded: true,
+      };
+      this.users.set(facultyUser.id, facultyUser);
+    }
 
     // ---------------- REAL STUDENT DATA ----------------
     const studentList = [
@@ -123,6 +135,7 @@ export class MemStorage implements IStorage {
         username: s.username,
         password: hashedPassword,  
         role: "student",
+        isOnboarded: true,
       };
       this.users.set(user.id, user);
 
@@ -166,7 +179,7 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const hashedPassword = await bcrypt.hash(insertUser.password, 10);
-    const user: User = { ...insertUser, id, password: hashedPassword };
+    const user: User = { ...insertUser, id, password: hashedPassword, isOnboarded: false };
     this.users.set(id, user);
     return user;
   }
@@ -199,6 +212,29 @@ export class MemStorage implements IStorage {
 
     this.students.set(username, updatedStudent);
     return updatedStudent;
+  }
+
+  async getAllUsers(): Promise<Omit<User, "password">[]> {
+    return Array.from(this.users.values()).map(({ password, ...user }) => user);
+  }
+
+  async updateUser(id: string, data: Partial<Omit<User, "id" | "password">>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+
+    const updatedUser: User = {
+      ...user,
+      ...data,
+      id: user.id,
+      password: user.password, // Keep existing password
+    };
+
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    return this.users.delete(id);
   }
 }
 

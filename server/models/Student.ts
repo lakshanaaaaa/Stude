@@ -64,6 +64,7 @@ const badgeSchema = new Schema<Badge>(
 // Student Schema
 const studentSchema = new Schema<Student>(
   {
+    _id: { type: String, required: true },
     id: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     username: { type: String, required: true, unique: true },
@@ -85,7 +86,6 @@ const studentSchema = new Schema<Student>(
   },
   {
     timestamps: true,
-    _id: false, // Use custom id field instead of _id
   }
 );
 

@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import type { UserRole } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 interface AuthUser {
   id: string;
   username: string;
   role: UserRole;
+  isOnboarded: boolean;
 }
 
 interface AuthContextType {
@@ -14,6 +16,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
+  updateUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,13 +33,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        
+        // Verify current user state from server
+        apiRequest("GET", "/api/auth/me")
+          .then((currentUser) => {
+            if (currentUser.isOnboarded !== parsedUser.isOnboarded) {
+              const updatedUser = { ...parsedUser, isOnboarded: currentUser.isOnboarded };
+              setUser(updatedUser);
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+            }
+          })
+          .catch((error) => {
+            console.warn("Failed to verify user state:", error.message);
+            // Only clear auth if it's a 401 (unauthorized), not for network errors
+            if (error.message.includes("401")) {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              setToken(null);
+              setUser(null);
+            }
+          })
+          .finally(() => setIsLoading(false));
       } catch {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        setIsLoading(false);
       }
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = useCallback((newToken: string, newUser: AuthUser) => {
@@ -53,6 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user");
   }, []);
 
+  const updateUser = useCallback((updatedUser: AuthUser) => {
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -62,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
+        updateUser,
       }}
     >
       {children}

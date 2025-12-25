@@ -9,7 +9,8 @@ import {
   Sun, 
   User,
   Edit3,
-  Home
+  Home,
+  Shield
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,42 +41,51 @@ export function NavigationBar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/dashboard">
-            <a className="flex items-center gap-3 hover-elevate active-elevate-2 rounded-md px-2 py-1">
-              <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary">
-                <BarChart3 className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="font-semibold text-lg hidden sm:inline-block" data-testid="text-app-name">
-                CodeTrack
-              </span>
-            </a>
-          </Link>
+          <div className="flex items-center gap-3 hover-elevate active-elevate-2 rounded-md px-2 py-1 cursor-pointer" onClick={() => setLocation("/dashboard")}>
+            <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary">
+              <BarChart3 className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-lg hidden sm:inline-block" data-testid="text-app-name">
+              CodeTrack
+            </span>
+          </div>
 
           <nav className="flex items-center gap-2">
-            <Link href="/dashboard">
+            <Button 
+              variant={location === "/dashboard" ? "secondary" : "ghost"} 
+              size="sm"
+              className="gap-2"
+              data-testid="link-dashboard"
+              onClick={() => setLocation("/dashboard")}
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Button>
+
+            {user?.role === "admin" && (
               <Button 
-                variant={location === "/dashboard" ? "secondary" : "ghost"} 
+                variant={location === "/admin" ? "secondary" : "ghost"} 
                 size="sm"
                 className="gap-2"
-                data-testid="link-dashboard"
+                data-testid="link-admin"
+                onClick={() => setLocation("/admin")}
               >
-                <Home className="w-4 h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">Admin</span>
               </Button>
-            </Link>
+            )}
 
             {user?.role === "student" && (
-              <Link href="/edit-profile">
-                <Button 
-                  variant={location === "/edit-profile" ? "secondary" : "ghost"} 
-                  size="sm"
-                  className="gap-2"
-                  data-testid="link-edit-profile"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Edit Profile</span>
-                </Button>
-              </Link>
+              <Button 
+                variant={location === "/edit-profile" ? "secondary" : "ghost"} 
+                size="sm"
+                className="gap-2"
+                data-testid="link-edit-profile"
+                onClick={() => setLocation("/edit-profile")}
+              >
+                <Edit3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Edit Profile</span>
+              </Button>
             )}
           </nav>
 
@@ -118,21 +128,21 @@ export function NavigationBar() {
                 <DropdownMenuSeparator />
                 {user?.role === "student" && (
                   <>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/student/${user.username}`}>
-                        <a className="flex items-center gap-2 w-full cursor-pointer" data-testid="link-my-profile">
-                          <User className="w-4 h-4" />
-                          My Profile
-                        </a>
-                      </Link>
+                    <DropdownMenuItem 
+                      onClick={() => setLocation(`/student/${user.username}`)}
+                      className="flex items-center gap-2 cursor-pointer" 
+                      data-testid="link-my-profile"
+                    >
+                      <User className="w-4 h-4" />
+                      My Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/edit-profile">
-                        <a className="flex items-center gap-2 w-full cursor-pointer" data-testid="link-edit-settings">
-                          <Edit3 className="w-4 h-4" />
-                          Edit Settings
-                        </a>
-                      </Link>
+                    <DropdownMenuItem 
+                      onClick={() => setLocation("/edit-profile")}
+                      className="flex items-center gap-2 cursor-pointer" 
+                      data-testid="link-edit-settings"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Edit Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>

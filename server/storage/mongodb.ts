@@ -20,9 +20,12 @@ export class MongoStorage implements IStorage {
     const id = randomUUID();
     const hashedPassword = await bcrypt.hash(insertUser.password, 10);
     const user = new UserModel({
+      _id: id,
       id,
       ...insertUser,
       password: hashedPassword,
+      // Ensure onboarding flag exists in Mongo as well
+      isOnboarded: false,
     });
     await user.save();
     return user.toObject() as User;
@@ -41,6 +44,7 @@ export class MongoStorage implements IStorage {
   async createStudent(insertStudent: InsertStudent): Promise<Student> {
     const id = randomUUID();
     const student = new StudentModel({
+      _id: id,
       id,
       ...insertStudent,
     });
@@ -89,5 +93,26 @@ export class MongoStorage implements IStorage {
     );
     return student ? (student as Student) : undefined;
   }
+
+  async getAllUsers(): Promise<Omit<User, "password">[]> {
+    const users = await UserModel.find({}).select("-password").lean();
+    return users as Omit<User, "password">[];
+  }
+
+  async updateUser(id: string, data: Partial<Omit<User, "id" | "password">>): Promise<User | undefined> {
+    const user = await UserModel.findOneAndUpdate(
+      { id },
+      { $set: data },
+      { new: true, lean: true }
+    );
+    return user ? (user as User) : undefined;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await UserModel.deleteOne({ id });
+    return result.deletedCount > 0;
+  }
 }
+
+
 
