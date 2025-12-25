@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRoute } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { NavigationBar } from "@/components/NavigationBar";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { AccountCard } from "@/components/AccountCard";
@@ -10,17 +11,61 @@ import { BadgeGrid } from "@/components/BadgeGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, RefreshCw } from "lucide-react";
 import type { Student } from "@shared/schema";
 
 export default function StudentProfile() {
   const [, params] = useRoute("/student/:username");
   const username = params?.username;
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isScrapingLocal, setIsScrapingLocal] = useState(false);
+
+  const isOwnProfile = user?.username === username && user?.role === "student";
 
   const { data: student, isLoading, error } = useQuery<Student>({
     queryKey: ["/api/student", username],
     enabled: !!username,
+  });
+
+  const scrapeMutation = useMutation({
+    mutationFn: async () => {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/student/${username}/scrape`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to scrape data");
+      }
+      return response.json();
+    },
+    onMutate: () => {
+      setIsScrapingLocal(true);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/student", username] });
+      toast({
+        title: "Success",
+        description: "Profile data updated successfully!",
+      });
+      setIsScrapingLocal(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsScrapingLocal(false);
+    },
   });
 
   const analytics = useMemo(() => {
@@ -95,6 +140,19 @@ export default function StudentProfile() {
       <NavigationBar />
       
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {isOwnProfile && (
+          <div className="flex justify-end mb-4">
+            <Button
+              onClick={() => scrapeMutation.mutate()}
+              disabled={isScrapingLocal || scrapeMutation.isPending}
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${(isScrapingLocal || scrapeMutation.isPending) ? 'animate-spin' : ''}`} />
+              {(isScrapingLocal || scrapeMutation.isPending) ? "Updating..." : "Refresh Stats"}
+            </Button>
+          </div>
+        )}
+
         <ProfileHeader student={student} />
 
         <div className="space-y-8">
@@ -117,6 +175,18 @@ export default function StudentProfile() {
               <ContestStatsCard stats={analytics.contestStats} />
               <BadgeGrid badges={analytics.badges} />
             </>
+          )}
+
+          {!analytics && (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Performance Data</h3>
+                <p className="text-muted-foreground mb-4">
+                  Click "Update Data" to fetch the latest performance statistics from coding platforms.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </div>
       </main>

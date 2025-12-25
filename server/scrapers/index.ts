@@ -1,5 +1,6 @@
 import { scrapeLeetCode } from "./leetcode";
 import { scrapeCodeChef } from "./codechef";
+import { scrapeCodeForces } from "./codeforces";
 import type { ProblemStats, ContestStats, Badge, CodingPlatform } from "@shared/schema";
 
 export interface ScrapeResult {
@@ -13,38 +14,61 @@ export interface ScrapeResult {
  */
 export async function scrapeStudentData(
   leetcodeUsername?: string,
-  codechefUsername?: string
+  codechefUsername?: string,
+  codeforcesUsername?: string
 ): Promise<ScrapeResult> {
   const results: ScrapeResult[] = [];
+
+  console.log(`\n=== Starting scrapeStudentData ===`);
+  console.log(`LeetCode: ${leetcodeUsername || 'N/A'}`);
+  console.log(`CodeChef: ${codechefUsername || 'N/A'}`);
+  console.log(`CodeForces: ${codeforcesUsername || 'N/A'}`);
 
   // Scrape LeetCode if username provided
   if (leetcodeUsername) {
     try {
-      console.log(`Scraping LeetCode for: ${leetcodeUsername}`);
+      console.log(`\n[LeetCode] Starting scrape for: ${leetcodeUsername}`);
       const leetcodeData = await scrapeLeetCode(leetcodeUsername);
+      console.log(`[LeetCode] Success - Problems: ${leetcodeData.problemStats.total}`);
       results.push(leetcodeData);
-      // Add delay to avoid rate limiting
       await new Promise((resolve) => setTimeout(resolve, 2000));
-    } catch (error) {
-      console.error(`Failed to scrape LeetCode for ${leetcodeUsername}:`, error);
+    } catch (error: any) {
+      console.error(`[LeetCode] Failed for ${leetcodeUsername}:`, error.message);
     }
   }
 
   // Scrape CodeChef if username provided
   if (codechefUsername) {
     try {
-      console.log(`Scraping CodeChef for: ${codechefUsername}`);
+      console.log(`\n[CodeChef] Starting scrape for: ${codechefUsername}`);
       const codechefData = await scrapeCodeChef(codechefUsername);
+      console.log(`[CodeChef] Success - Problems: ${codechefData.problemStats.total}`);
       results.push(codechefData);
-      // Add delay to avoid rate limiting
       await new Promise((resolve) => setTimeout(resolve, 2000));
-    } catch (error) {
-      console.error(`Failed to scrape CodeChef for ${codechefUsername}:`, error);
+    } catch (error: any) {
+      console.error(`[CodeChef] Failed for ${codechefUsername}:`, error.message);
     }
   }
 
-  // Merge all results
-  return mergeScrapeResults(results);
+  // Scrape CodeForces if username provided
+  if (codeforcesUsername) {
+    try {
+      console.log(`\n[CodeForces] Starting scrape for: ${codeforcesUsername}`);
+      const codeforcesData = await scrapeCodeForces(codeforcesUsername);
+      console.log(`[CodeForces] Success - Problems: ${codeforcesData.problemStats.total}`);
+      results.push(codeforcesData);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    } catch (error: any) {
+      console.error(`[CodeForces] Failed for ${codeforcesUsername}:`, error.message);
+    }
+  }
+
+  console.log(`\n[Merge] Merging ${results.length} results...`);
+  const merged = mergeScrapeResults(results);
+  console.log(`[Merge] Final totals - Problems: ${merged.problemStats.total}, Rating: ${merged.contestStats.currentRating}`);
+  console.log(`=== scrapeStudentData complete ===\n`);
+
+  return merged;
 }
 
 /**
