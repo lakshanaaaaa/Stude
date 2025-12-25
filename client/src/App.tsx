@@ -7,14 +7,40 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
+import SignUp from "@/pages/SignUp";
+import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import StudentProfile from "@/pages/StudentProfile";
 import EditProfile from "@/pages/EditProfile";
+import AdminDashboard from "@/pages/AdminDashboard";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
-function ProtectedRoute({ component: Component }: { component: () => JSX.Element }) {
-  const { isAuthenticated, isLoading } = useAuth();
+function ProtectedRoute({ component: Component, allowedRoles }: { component: () => JSX.Element; allowedRoles?: string[] }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
+  const [location] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setLocation("/login");
+      return;
+    }
+    
+    if (!isLoading && isAuthenticated && user) {
+      // Only redirect to onboarding if user is not onboarded AND not already on onboarding page
+      if (user.role === "student" && !user.isOnboarded && location !== "/onboarding") {
+        setLocation("/onboarding");
+        return;
+      }
+      
+      // Check role permissions
+      if (allowedRoles && !allowedRoles.includes(user.role)) {
+        setLocation("/dashboard");
+        return;
+      }
+    }
+  }, [isLoading, isAuthenticated, user, allowedRoles, setLocation, location]);
 
   if (isLoading) {
     return (
@@ -25,7 +51,16 @@ function ProtectedRoute({ component: Component }: { component: () => JSX.Element
   }
 
   if (!isAuthenticated) {
-    setLocation("/login");
+    return null;
+  }
+
+  // Block access if role not allowed
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return null;
+  }
+
+  // Block access to non-onboarding pages for non-onboarded students
+  if (user?.role === "student" && !user?.isOnboarded && location !== "/onboarding") {
     return null;
   }
 
@@ -33,8 +68,18 @@ function ProtectedRoute({ component: Component }: { component: () => JSX.Element
 }
 
 function PublicRoute({ component: Component }: { component: () => JSX.Element }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      if (user?.role === "student" && !user?.isOnboarded) {
+        setLocation("/onboarding");
+      } else {
+        setLocation("/dashboard");
+      }
+    }
+  }, [isLoading, isAuthenticated, user, setLocation]);
 
   if (isLoading) {
     return (
@@ -45,7 +90,6 @@ function PublicRoute({ component: Component }: { component: () => JSX.Element })
   }
 
   if (isAuthenticated) {
-    setLocation("/dashboard");
     return null;
   }
 
@@ -61,6 +105,12 @@ function Router() {
       <Route path="/login">
         <PublicRoute component={Login} />
       </Route>
+      <Route path="/signup">
+        <PublicRoute component={SignUp} />
+      </Route>
+      <Route path="/onboarding">
+        <ProtectedRoute component={Onboarding} />
+      </Route>
       <Route path="/dashboard">
         <ProtectedRoute component={Dashboard} />
       </Route>
@@ -69,6 +119,9 @@ function Router() {
       </Route>
       <Route path="/edit-profile">
         <ProtectedRoute component={EditProfile} />
+      </Route>
+      <Route path="/admin">
+        <ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} />
       </Route>
       <Route component={NotFound} />
     </Switch>

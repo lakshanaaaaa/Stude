@@ -12,7 +12,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { AlertCircle, ArrowLeft } from "lucide-react";
-import { generateStudentAnalytics } from "@/lib/dummyData";
 import type { Student } from "@shared/schema";
 
 export default function StudentProfile() {
@@ -26,7 +25,7 @@ export default function StudentProfile() {
 
   const analytics = useMemo(() => {
     if (!student) return null;
-    // Use scraped analytics if available, otherwise generate dummy data
+    // Only show analytics if available in database
     if (student.problemStats && student.contestStats) {
       return {
         problemStats: student.problemStats,
@@ -34,7 +33,7 @@ export default function StudentProfile() {
         badges: student.badges || [],
       };
     }
-    return generateStudentAnalytics();
+    return null;
   }, [student]);
 
   if (isLoading) {

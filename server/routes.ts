@@ -48,6 +48,48 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.post("/api/auth/signup", async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username and password are required" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
+      // All signups default to student role
+      const newUser = await storage.createUser({
+        username,
+        password,
+        role: "student",
+      });
+
+      const token = jwt.sign(
+        { id: newUser.id, username: newUser.username, role: newUser.role },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      return res.json({
+        token,
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          role: newUser.role,
+          isOnboarded: newUser.isOnboarded,
+        },
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
@@ -78,6 +120,7 @@ export async function registerRoutes(
           id: user.id,
           username: user.username,
           role: user.role,
+          isOnboarded: user.isOnboarded,
         },
       });
     } catch (error) {
@@ -97,6 +140,7 @@ export async function registerRoutes(
         id: user.id,
         username: user.username,
         role: user.role,
+        isOnboarded: user.isOnboarded,
       });
     } catch (error) {
       console.error("Get user error:", error);
@@ -167,6 +211,129 @@ export async function registerRoutes(
       return res.json(updatedStudent);
     } catch (error) {
       console.error("Update student error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Admin routes
+  app.post("/api/auth/onboard", authMiddleware(["student"]), async (req: Request, res: Response) => {
+    try {
+      const { leetcode, codeforces, codechef } = req.body;
+      const username = req.user!.username;
+
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if student already exists
+      const existingStudent = await storage.getStudentByUsername(username);
+      if (existingStudent) {
+        const updatedUser = await storage.updateUser(user.id, { isOnboarded: true });
+        return res.json({ 
+          success: true, 
+          student: existingStudent,
+          user: {
+            id: updatedUser!.id,
+            username: updatedUser!.username,
+            role: updatedUser!.role,
+            isOnboarded: updatedUser!.isOnboarded,
+          }
+        });
+      }
+
+      const mainAccounts = [];
+      if (leetcode) mainAccounts.push({ platform: "LeetCode" as const, username: leetcode });
+      if (codeforces) mainAccounts.push({ platform: "CodeForces" as const, username: codeforces });
+      if (codechef) mainAccounts.push({ platform: "CodeChef" as const, username: codechef });
+
+      const student = await storage.createStudent({
+        name: username,
+        username,
+        dept: "Not Set",
+        regNo: "Not Set",
+        email: `${username}@college.edu`,
+        mainAccounts,
+        subAccounts: [],
+      });
+
+      const updatedUser = await storage.updateUser(user.id, { isOnboarded: true });
+
+      return res.json({ 
+        success: true, 
+        student,
+        user: {
+          id: updatedUser!.id,
+          username: updatedUser!.username,
+          role: updatedUser!.role,
+          isOnboarded: updatedUser!.isOnboarded,
+        }
+      });
+    } catch (error) {
+      console.error("Onboarding error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/users", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      return res.json(users);
+    } catch (error) {
+      console.error("Get users error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { role, username } = req.body;
+
+      const updateData: Record<string, unknown> = {};
+      if (role !== undefined) {
+        if (!["admin", "faculty", "student"].includes(role)) {
+          return res.status(400).json({ error: "Invalid role" });
+        }
+        updateData.role = role;
+      }
+      if (username !== undefined) {
+        updateData.username = username;
+      }
+
+      const updatedUser = await storage.updateUser(id, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      return res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        role: updatedUser.role,
+      });
+    } catch (error) {
+      console.error("Update user error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Prevent admin from deleting themselves
+      if (req.user!.id === id) {
+        return res.status(400).json({ error: "You cannot delete your own account" });
+      }
+
+      const success = await storage.deleteUser(id);
+      if (!success) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      return res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Delete user error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   });
