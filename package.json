@@ -11,7 +11,9 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx server/scripts/seedMongoDB.ts",
     "db:scrape": "tsx server/scripts/scrapeStudents.ts",
-    "db:update-scrape": "tsx server/scripts/inputUsernames.ts"
+    "db:update-scrape": "tsx server/scripts/inputUsernames.ts",
+    "test:scrape": "tsx server/scripts/testScraping.ts",
+    "test:quick": "tsx server/scripts/quickTest.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

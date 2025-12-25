@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import type { UserRole } from "@shared/schema";
+import { scrapeStudentData } from "./scrapers/index";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
 
@@ -212,6 +213,71 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update student error:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/student/:username/scrape", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      console.log(`\n=== Scraping request for: ${username} ===`);
+      
+      const student = await storage.getStudentByUsername(username);
+
+      if (!student) {
+        console.error(`Student not found: ${username}`);
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      console.log(`Student found. Main accounts:`, student.mainAccounts);
+
+      // Extract usernames from mainAccounts
+      const leetcodeAccount = student.mainAccounts?.find(acc => acc.platform === "LeetCode");
+      const codechefAccount = student.mainAccounts?.find(acc => acc.platform === "CodeChef");
+      const codeforcesAccount = student.mainAccounts?.find(acc => acc.platform === "CodeForces");
+
+      console.log(`Platform usernames:`);
+      console.log(`  LeetCode: ${leetcodeAccount?.username || 'Not set'}`);
+      console.log(`  CodeChef: ${codechefAccount?.username || 'Not set'}`);
+      console.log(`  CodeForces: ${codeforcesAccount?.username || 'Not set'}`);
+
+      if (!leetcodeAccount && !codechefAccount && !codeforcesAccount) {
+        console.error(`No platform accounts configured for ${username}`);
+        return res.status(400).json({ error: "No platform accounts configured. Please add your LeetCode, CodeChef, or CodeForces username in Edit Profile." });
+      }
+
+      // Scrape data
+      console.log(`Starting scraping process...`);
+      const scrapedData = await scrapeStudentData(
+        leetcodeAccount?.username,
+        codechefAccount?.username,
+        codeforcesAccount?.username
+      );
+
+      console.log(`Scraping completed. Results:`);
+      console.log(`  Total problems: ${scrapedData.problemStats.total}`);
+      console.log(`  Current rating: ${scrapedData.contestStats.currentRating}`);
+      console.log(`  Badges: ${scrapedData.badges.length}`);
+
+      // Update student with scraped data
+      const updatedStudent = await storage.updateStudentAnalytics(username, scrapedData);
+
+      if (!updatedStudent) {
+        console.error(`Failed to update student analytics for ${username}`);
+        return res.status(500).json({ error: "Failed to update student data" });
+      }
+
+      console.log(`Successfully updated student data for ${username}`);
+      console.log(`=== Scraping complete ===\n`);
+
+      return res.json({
+        success: true,
+        student: updatedStudent,
+        message: "Profile data scraped and updated successfully"
+      });
+    } catch (error: any) {
+      console.error("Scrape student error:", error);
+      console.error("Error stack:", error.stack);
+      return res.status(500).json({ error: error.message || "Failed to scrape student data" });
     }
   });
 

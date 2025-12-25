@@ -13,6 +13,14 @@ export interface IStorage {
   getStudentByUsername(username: string): Promise<Student | undefined>;
   createStudent(student: InsertStudent): Promise<Student>;
   updateStudent(username: string, data: UpdateStudent): Promise<Student | undefined>;
+  updateStudentAnalytics(
+    username: string,
+    analytics: {
+      problemStats?: Student["problemStats"];
+      contestStats?: Student["contestStats"];
+      badges?: Student["badges"];
+    }
+  ): Promise<Student | undefined>;
 }
 
 const avatarColors = [
@@ -208,6 +216,28 @@ export class MemStorage implements IStorage {
       ...data,
       username: student.username,
       id: student.id,
+    };
+
+    this.students.set(username, updatedStudent);
+    return updatedStudent;
+  }
+
+  async updateStudentAnalytics(
+    username: string,
+    analytics: {
+      problemStats?: Student["problemStats"];
+      contestStats?: Student["contestStats"];
+      badges?: Student["badges"];
+    }
+  ): Promise<Student | undefined> {
+    const student = this.students.get(username);
+    if (!student) return undefined;
+
+    const updatedStudent: Student = {
+      ...student,
+      problemStats: analytics.problemStats || student.problemStats,
+      contestStats: analytics.contestStats || student.contestStats,
+      badges: analytics.badges || student.badges,
     };
 
     this.students.set(username, updatedStudent);
