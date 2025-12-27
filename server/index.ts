@@ -103,6 +103,7 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      console.log(`\n🚀 Frontend is available at: http://localhost:${port}\n`);
     },
   );
 })();

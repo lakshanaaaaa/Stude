@@ -32,8 +32,8 @@ const problemStatsSchema = new Schema<ProblemStats>(
   { _id: false }
 );
 
-// Contest Stats Schema
-const contestStatsSchema = new Schema<ContestStats>(
+// Contest Stats Schema for individual platform
+const platformContestStatsSchema = new Schema(
   {
     currentRating: { type: Number, default: 0 },
     highestRating: { type: Number, default: 0 },
@@ -42,9 +42,18 @@ const contestStatsSchema = new Schema<ContestStats>(
       {
         date: String,
         rating: Number,
-        platform: String,
       },
     ],
+  },
+  { _id: false }
+);
+
+// Contest Stats Schema
+const contestStatsSchema = new Schema<ContestStats>(
+  {
+    leetcode: { type: platformContestStatsSchema, default: () => ({}) },
+    codechef: { type: platformContestStatsSchema, default: () => ({}) },
+    codeforces: { type: platformContestStatsSchema, default: () => ({}) },
   },
   { _id: false }
 );

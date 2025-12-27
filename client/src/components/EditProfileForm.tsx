@@ -46,7 +46,7 @@ interface EditProfileFormProps {
   isPending?: boolean;
 }
 
-const departments = ["CSE", "ECE", "IT", "EEE", "MECH", "CIVIL"];
+const departments = ["CSE(AI&ML)", "AI&DS", "CSBS", "CSE"];
 
 export function EditProfileForm({ student, onSubmit, isPending }: EditProfileFormProps) {
   const form = useForm<EditProfileFormData>({
