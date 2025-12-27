@@ -70,8 +70,8 @@ export default function StudentProfile() {
 
   const analytics = useMemo(() => {
     if (!student) return null;
-    // Only show analytics if available in database
-    if (student.problemStats && student.contestStats) {
+    // Show analytics if problemStats OR contestStats available
+    if (student.problemStats || student.contestStats) {
       return {
         problemStats: student.problemStats,
         contestStats: student.contestStats,
@@ -171,9 +171,9 @@ export default function StudentProfile() {
 
           {analytics && (
             <>
-              <ProblemStatsCard stats={analytics.problemStats} />
-              <ContestStatsCard stats={analytics.contestStats} />
-              <BadgeGrid badges={analytics.badges} />
+              {analytics.problemStats && <ProblemStatsCard stats={analytics.problemStats} />}
+              {analytics.contestStats && <ContestStatsCard stats={analytics.contestStats} />}
+              {analytics.badges && analytics.badges.length > 0 && <BadgeGrid badges={analytics.badges} />}
             </>
           )}
 

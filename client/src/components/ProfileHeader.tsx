@@ -27,10 +27,10 @@ export function ProfileHeader({ student }: ProfileHeaderProps) {
   return (
     <div className="mb-8">
       <Link href="/dashboard">
-        <a className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6 hover-elevate active-elevate-2 rounded-md px-2 py-1 -ml-2">
+        <Button variant="ghost" size="sm" className="gap-2 mb-6 -ml-2">
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
-        </a>
+        </Button>
       </Link>
 
       <div className="flex flex-col md:flex-row md:items-start gap-6">

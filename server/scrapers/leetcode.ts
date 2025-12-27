@@ -5,7 +5,14 @@ interface LeetCodeResponse {
   data: {
     matchedUser: {
       username: string;
-      submitStats: {
+      submitStatsGlobal?: {
+        acSubmissionNum: Array<{
+          difficulty: string;
+          count: number;
+          submissions: number;
+        }>;
+      };
+      submitStats?: {
         acSubmissionNum: Array<{
           difficulty: string;
           count: number;
@@ -16,21 +23,7 @@ interface LeetCodeResponse {
         ranking: number;
         reputation: number;
       };
-      userContestRanking: {
-        attendedContestsCount: number;
-        rating: number;
-        globalRanking: number;
-        totalParticipants: number;
-      } | null;
-      userContestRankingHistory: Array<{
-        contest: {
-          title: string;
-          startTime: number;
-        };
-        rating: number;
-        ranking: number;
-      }>;
-    };
+    } | null;
   };
 }
 
@@ -47,26 +40,38 @@ export async function scrapeLeetCode(username: string): Promise<{
           acSubmissionNum {
             difficulty
             count
+            submissions
+          }
+        }
+        submitStats {
+          acSubmissionNum {
+            difficulty
+            count
+            submissions
           }
         }
         profile {
           ranking
           reputation
         }
-        userContestRanking {
-          attendedContestsCount
-          rating
-          globalRanking
-          topPercentage
-        }
-        userContestRankingHistory {
-          attended
-          rating
-          ranking
-          contest {
-            title
-            startTime
-          }
+      }
+      userContestRanking(username: $username) {
+        attendedContestsCount
+        rating
+        globalRanking
+        topPercentage
+      }
+      userContestRankingHistory(username: $username) {
+        attended
+        rating
+        ranking
+        trendDirection
+        problemsSolved
+        totalProblems
+        finishTimeInSeconds
+        contest {
+          title
+          startTime
         }
       }
     }
@@ -88,7 +93,7 @@ export async function scrapeLeetCode(username: string): Promise<{
           "Referer": `https://leetcode.com/${username}/`,
           "Origin": "https://leetcode.com"
         },
-        timeout: 15000,
+        timeout: 30000,
       }
     );
 
@@ -106,15 +111,47 @@ export async function scrapeLeetCode(username: string): Promise<{
     }
 
     console.log(`Successfully fetched LeetCode data for ${username}`);
+    
+    // Debug: Log the actual response structure
+    console.log(`[DEBUG] User object keys:`, Object.keys(user));
+    console.log(`[DEBUG] submitStatsGlobal exists:`, !!user.submitStatsGlobal);
+    console.log(`[DEBUG] submitStats exists:`, !!(user as any).submitStats);
+    
+    if (user.submitStatsGlobal) {
+      console.log(`[DEBUG] submitStatsGlobal structure:`, JSON.stringify(user.submitStatsGlobal).substring(0, 200));
+    }
+    if ((user as any).submitStats) {
+      console.log(`[DEBUG] submitStats structure:`, JSON.stringify((user as any).submitStats).substring(0, 200));
+    }
 
     // Extract problem stats - try both submitStatsGlobal and submitStats
+    // submitStatsGlobal is preferred as it includes all problems (including paid)
     const submissions = user.submitStatsGlobal?.acSubmissionNum || user.submitStats?.acSubmissionNum || [];
-    const easy = submissions.find((s: any) => s.difficulty === "Easy")?.count || 0;
-    const medium = submissions.find((s: any) => s.difficulty === "Medium")?.count || 0;
-    const hard = submissions.find((s: any) => s.difficulty === "Hard")?.count || 0;
+    
+    console.log(`[DEBUG] Submissions array length:`, submissions.length);
+    if (submissions.length > 0) {
+      console.log(`[DEBUG] Submissions data:`, JSON.stringify(submissions).substring(0, 500));
+    } else {
+      console.warn(`[WARNING] No submissions data found in response`);
+    }
+    
+    // Try different case variations for difficulty
+    const easy = submissions.find((s: any) => 
+      s.difficulty === "Easy" || s.difficulty === "EASY" || s.difficulty === "easy"
+    )?.count || 0;
+    const medium = submissions.find((s: any) => 
+      s.difficulty === "Medium" || s.difficulty === "MEDIUM" || s.difficulty === "medium"
+    )?.count || 0;
+    const hard = submissions.find((s: any) => 
+      s.difficulty === "Hard" || s.difficulty === "HARD" || s.difficulty === "hard"
+    )?.count || 0;
     const total = easy + medium + hard;
 
     console.log(`LeetCode problems - Total: ${total}, Easy: ${easy}, Medium: ${medium}, Hard: ${hard}`);
+    
+    if (total === 0 && submissions.length > 0) {
+      console.warn(`[WARNING] Total is 0 but submissions array has ${submissions.length} items. Check difficulty field names.`);
+    }
 
     const problemStats: ProblemStats = {
       total,
@@ -133,64 +170,66 @@ export async function scrapeLeetCode(username: string): Promise<{
     };
 
     // Extract contest stats
-    const contestRanking = user.userContestRanking;
-    const ratingHistory = (user.userContestRankingHistory || []).filter((h: any) => h.attended);
-
-    // Calculate highest rating from history
-    let highestRating = contestRanking?.rating || 0;
-    if (ratingHistory.length > 0) {
-      highestRating = Math.max(...ratingHistory.map((h: any) => h.rating), highestRating);
-    }
-
-    const contestStats: ContestStats = {
-      currentRating: Math.round(contestRanking?.rating || 0),
-      highestRating: Math.round(highestRating),
+    const contestRanking = (response.data.data as any).userContestRanking;
+    const contestHistory = (response.data.data as any).userContestRankingHistory || [];
+    
+    console.log(`[DEBUG] Contest ranking:`, contestRanking);
+    console.log(`[DEBUG] Contest history length:`, contestHistory.length);
+    
+    const ratingHistory = contestHistory
+      .filter((contest: any) => contest.attended && contest.rating)
+      .map((contest: any) => ({
+        date: new Date(contest.contest.startTime * 1000).toISOString(),
+        rating: Math.round(contest.rating),
+      }));
+    
+    const contestStats: any = {
+      currentRating: contestRanking?.rating ? Math.round(contestRanking.rating) : 0,
+      highestRating: ratingHistory.length > 0 
+        ? Math.max(...ratingHistory.map((h: any) => h.rating))
+        : 0,
       totalContests: contestRanking?.attendedContestsCount || 0,
-      ratingHistory: ratingHistory.map((entry: any) => ({
-        date: new Date(entry.contest.startTime * 1000).toISOString().split("T")[0],
-        rating: Math.round(entry.rating),
-        platform: "LeetCode" as CodingPlatform,
-      })),
+      ratingHistory,
     };
 
     console.log(`LeetCode contests - Rating: ${contestStats.currentRating}, Contests: ${contestStats.totalContests}`);
 
-    // Extract badges
+    // Extract badges based on problem solving achievements
     const badges: Badge[] = [];
-    if (contestRanking?.rating) {
-      if (contestRanking.rating >= 2400) {
-        badges.push({
-          id: `leetcode-grandmaster-${username}`,
-          name: "Grandmaster",
-          platform: "LeetCode",
-          icon: "🏆",
-          level: 5,
-        });
-      } else if (contestRanking.rating >= 2100) {
-        badges.push({
-          id: `leetcode-master-${username}`,
-          name: "Master",
-          platform: "LeetCode",
-          icon: "🥇",
-          level: 4,
-        });
-      } else if (contestRanking.rating >= 1800) {
-        badges.push({
-          id: `leetcode-expert-${username}`,
-          name: "Expert",
-          platform: "LeetCode",
-          icon: "🥈",
-          level: 3,
-        });
-      } else if (contestRanking.rating >= 1600) {
-        badges.push({
-          id: `leetcode-specialist-${username}`,
-          name: "Specialist",
-          platform: "LeetCode",
-          icon: "🥉",
-          level: 2,
-        });
-      }
+    
+    // Badges based on total problems solved
+    if (total >= 1000) {
+      badges.push({
+        id: `leetcode-problem-solver-1000-${username}`,
+        name: "Problem Solver 1000+",
+        platform: "LeetCode",
+        icon: "🏆",
+        level: 5,
+      });
+    } else if (total >= 500) {
+      badges.push({
+        id: `leetcode-problem-solver-500-${username}`,
+        name: "Problem Solver 500+",
+        platform: "LeetCode",
+        icon: "🥇",
+        level: 4,
+      });
+    } else if (total >= 200) {
+      badges.push({
+        id: `leetcode-problem-solver-200-${username}`,
+        name: "Problem Solver 200+",
+        platform: "LeetCode",
+        icon: "🥈",
+        level: 3,
+      });
+    } else if (total >= 100) {
+      badges.push({
+        id: `leetcode-problem-solver-100-${username}`,
+        name: "Problem Solver 100+",
+        platform: "LeetCode",
+        icon: "🥉",
+        level: 2,
+      });
     }
 
     if (user.profile?.reputation && user.profile.reputation >= 1000) {
@@ -216,7 +255,14 @@ export async function scrapeLeetCode(username: string): Promise<{
         easy: 0,
         medium: 0,
         hard: 0,
-        platformStats: {},
+        platformStats: {
+          LeetCode: 0,
+          CodeChef: 0,
+          CodeForces: 0,
+          GeeksforGeeks: 0,
+          HackerRank: 0,
+          CodeStudio: 0,
+        },
         solvedOverTime: [],
       },
       contestStats: {
@@ -229,6 +275,7 @@ export async function scrapeLeetCode(username: string): Promise<{
     };
   }
 }
+
 
 
 

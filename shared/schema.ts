@@ -60,10 +60,24 @@ export const studentSchema = z.object({
     solvedOverTime: z.array(z.object({ date: z.string(), count: z.number() })).default([]),
   }).optional(),
   contestStats: z.object({
-    currentRating: z.number().default(0),
-    highestRating: z.number().default(0),
-    totalContests: z.number().default(0),
-    ratingHistory: z.array(z.object({ date: z.string(), rating: z.number(), platform: z.string() })).default([]),
+    leetcode: z.object({
+      currentRating: z.number().default(0),
+      highestRating: z.number().default(0),
+      totalContests: z.number().default(0),
+      ratingHistory: z.array(z.object({ date: z.string(), rating: z.number() })).default([]),
+    }).optional(),
+    codechef: z.object({
+      currentRating: z.number().default(0),
+      highestRating: z.number().default(0),
+      totalContests: z.number().default(0),
+      ratingHistory: z.array(z.object({ date: z.string(), rating: z.number() })).default([]),
+    }).optional(),
+    codeforces: z.object({
+      currentRating: z.number().default(0),
+      highestRating: z.number().default(0),
+      totalContests: z.number().default(0),
+      ratingHistory: z.array(z.object({ date: z.string(), rating: z.number() })).default([]),
+    }).optional(),
   }).optional(),
   badges: z.array(z.object({
     id: z.string(),
@@ -92,10 +106,24 @@ export interface ProblemStats {
 }
 
 export interface ContestStats {
-  currentRating: number;
-  highestRating: number;
-  totalContests: number;
-  ratingHistory: { date: string; rating: number; platform: CodingPlatform }[];
+  leetcode: {
+    currentRating: number;
+    highestRating: number;
+    totalContests: number;
+    ratingHistory: { date: string; rating: number }[];
+  };
+  codechef: {
+    currentRating: number;
+    highestRating: number;
+    totalContests: number;
+    ratingHistory: { date: string; rating: number }[];
+  };
+  codeforces: {
+    currentRating: number;
+    highestRating: number;
+    totalContests: number;
+    ratingHistory: { date: string; rating: number }[];
+  };
 }
 
 export interface Badge {

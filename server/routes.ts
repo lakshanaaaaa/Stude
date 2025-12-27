@@ -229,33 +229,41 @@ export async function registerRoutes(
       }
 
       console.log(`Student found. Main accounts:`, student.mainAccounts);
+      console.log(`Sub accounts:`, student.subAccounts);
 
-      // Extract usernames from mainAccounts
-      const leetcodeAccount = student.mainAccounts?.find(acc => acc.platform === "LeetCode");
-      const codechefAccount = student.mainAccounts?.find(acc => acc.platform === "CodeChef");
-      const codeforcesAccount = student.mainAccounts?.find(acc => acc.platform === "CodeForces");
+      // Extract usernames from accounts
+      const leetcodeAccount = student.mainAccounts?.find(acc => acc.platform === "LeetCode") || student.subAccounts?.find(acc => acc.platform === "LeetCode");
+      const codechefAccount = student.mainAccounts?.find(acc => acc.platform === "CodeChef") || student.subAccounts?.find(acc => acc.platform === "CodeChef");
+      const codeforcesAccount = student.mainAccounts?.find(acc => acc.platform === "CodeForces") || student.subAccounts?.find(acc => acc.platform === "CodeForces");
+      const gfgAccount = student.mainAccounts?.find(acc => acc.platform === "GeeksforGeeks") || student.subAccounts?.find(acc => acc.platform === "GeeksforGeeks");
+      const hrAccount = student.mainAccounts?.find(acc => acc.platform === "HackerRank") || student.subAccounts?.find(acc => acc.platform === "HackerRank");
 
       console.log(`Platform usernames:`);
       console.log(`  LeetCode: ${leetcodeAccount?.username || 'Not set'}`);
       console.log(`  CodeChef: ${codechefAccount?.username || 'Not set'}`);
       console.log(`  CodeForces: ${codeforcesAccount?.username || 'Not set'}`);
+      console.log(`  GeeksforGeeks: ${gfgAccount?.username || 'Not set'}`);
+      console.log(`  HackerRank: ${hrAccount?.username || 'Not set'}`);
 
-      if (!leetcodeAccount && !codechefAccount && !codeforcesAccount) {
+      if (!leetcodeAccount && !codechefAccount && !codeforcesAccount && !gfgAccount && !hrAccount) {
         console.error(`No platform accounts configured for ${username}`);
-        return res.status(400).json({ error: "No platform accounts configured. Please add your LeetCode, CodeChef, or CodeForces username in Edit Profile." });
+        return res.status(400).json({ error: "No platform accounts configured. Please add your platform usernames in Edit Profile." });
       }
 
-      // Scrape data
       console.log(`Starting scraping process...`);
       const scrapedData = await scrapeStudentData(
         leetcodeAccount?.username,
         codechefAccount?.username,
-        codeforcesAccount?.username
+        codeforcesAccount?.username,
+        gfgAccount?.username,
+        hrAccount?.username
       );
 
       console.log(`Scraping completed. Results:`);
       console.log(`  Total problems: ${scrapedData.problemStats.total}`);
-      console.log(`  Current rating: ${scrapedData.contestStats.currentRating}`);
+      console.log(`  LeetCode contests: ${scrapedData.contestStats.leetcode?.totalContests || 0}`);
+      console.log(`  CodeChef contests: ${scrapedData.contestStats.codechef?.totalContests || 0}`);
+      console.log(`  CodeForces contests: ${scrapedData.contestStats.codeforces?.totalContests || 0}`);
       console.log(`  Badges: ${scrapedData.badges.length}`);
 
       // Update student with scraped data

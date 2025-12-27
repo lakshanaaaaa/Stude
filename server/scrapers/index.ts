@@ -1,11 +1,18 @@
 import { scrapeLeetCode } from "./leetcode";
 import { scrapeCodeChef } from "./codechef";
 import { scrapeCodeForces } from "./codeforces";
+import { scrapeGeeksforGeeks } from "./geeksforgeeks";
+import { scrapeHackerRank } from "./hackerrank";
 import type { ProblemStats, ContestStats, Badge, CodingPlatform } from "@shared/schema";
 
 export interface ScrapeResult {
   problemStats: ProblemStats;
-  contestStats: ContestStats;
+  contestStats: {
+    currentRating: number;
+    highestRating: number;
+    totalContests: number;
+    ratingHistory: { date: string; rating: number; platform: CodingPlatform }[];
+  };
   badges: Badge[];
 }
 
@@ -15,7 +22,9 @@ export interface ScrapeResult {
 export async function scrapeStudentData(
   leetcodeUsername?: string,
   codechefUsername?: string,
-  codeforcesUsername?: string
+  codeforcesUsername?: string,
+  geeksforgeeksUsername?: string,
+  hackerrankUsername?: string
 ): Promise<ScrapeResult> {
   const results: ScrapeResult[] = [];
 
@@ -23,49 +32,72 @@ export async function scrapeStudentData(
   console.log(`LeetCode: ${leetcodeUsername || 'N/A'}`);
   console.log(`CodeChef: ${codechefUsername || 'N/A'}`);
   console.log(`CodeForces: ${codeforcesUsername || 'N/A'}`);
+  console.log(`GeeksforGeeks: ${geeksforgeeksUsername || 'N/A'}`);
+  console.log(`HackerRank: ${hackerrankUsername || 'N/A'}`);
 
-  // Scrape LeetCode if username provided
   if (leetcodeUsername) {
     try {
       console.log(`\n[LeetCode] Starting scrape for: ${leetcodeUsername}`);
       const leetcodeData = await scrapeLeetCode(leetcodeUsername);
       console.log(`[LeetCode] Success - Problems: ${leetcodeData.problemStats.total}`);
-      results.push(leetcodeData);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      results.push({ platform: 'LeetCode', data: leetcodeData });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error: any) {
       console.error(`[LeetCode] Failed for ${leetcodeUsername}:`, error.message);
     }
   }
 
-  // Scrape CodeChef if username provided
   if (codechefUsername) {
     try {
       console.log(`\n[CodeChef] Starting scrape for: ${codechefUsername}`);
       const codechefData = await scrapeCodeChef(codechefUsername);
       console.log(`[CodeChef] Success - Problems: ${codechefData.problemStats.total}`);
-      results.push(codechefData);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      results.push({ platform: 'CodeChef', data: codechefData });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error: any) {
       console.error(`[CodeChef] Failed for ${codechefUsername}:`, error.message);
     }
   }
 
-  // Scrape CodeForces if username provided
   if (codeforcesUsername) {
     try {
       console.log(`\n[CodeForces] Starting scrape for: ${codeforcesUsername}`);
       const codeforcesData = await scrapeCodeForces(codeforcesUsername);
       console.log(`[CodeForces] Success - Problems: ${codeforcesData.problemStats.total}`);
-      results.push(codeforcesData);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      results.push({ platform: 'CodeForces', data: codeforcesData });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error: any) {
       console.error(`[CodeForces] Failed for ${codeforcesUsername}:`, error.message);
     }
   }
 
+  if (geeksforgeeksUsername) {
+    try {
+      console.log(`\n[GeeksforGeeks] Starting scrape for: ${geeksforgeeksUsername}`);
+      const gfgData = await scrapeGeeksforGeeks(geeksforgeeksUsername);
+      console.log(`[GeeksforGeeks] Success - Problems: ${gfgData.problemStats.total}`);
+      results.push({ platform: 'GeeksforGeeks', data: gfgData });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    } catch (error: any) {
+      console.error(`[GeeksforGeeks] Failed for ${geeksforgeeksUsername}:`, error.message);
+    }
+  }
+
+  if (hackerrankUsername) {
+    try {
+      console.log(`\n[HackerRank] Starting scrape for: ${hackerrankUsername}`);
+      const hrData = await scrapeHackerRank(hackerrankUsername);
+      console.log(`[HackerRank] Success - Problems: ${hrData.problemStats.total}`);
+      results.push({ platform: 'HackerRank', data: hrData });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    } catch (error: any) {
+      console.error(`[HackerRank] Failed for ${hackerrankUsername}:`, error.message);
+    }
+  }
+
   console.log(`\n[Merge] Merging ${results.length} results...`);
   const merged = mergeScrapeResults(results);
-  console.log(`[Merge] Final totals - Problems: ${merged.problemStats.total}, Rating: ${merged.contestStats.currentRating}`);
+  console.log(`[Merge] Final totals - Problems: ${merged.problemStats.total}`);
   console.log(`=== scrapeStudentData complete ===\n`);
 
   return merged;
@@ -74,7 +106,7 @@ export async function scrapeStudentData(
 /**
  * Merges multiple scrape results into a single result
  */
-function mergeScrapeResults(results: ScrapeResult[]): ScrapeResult {
+function mergeScrapeResults(results: Array<{ platform: string; data: ScrapeResult }>): ScrapeResult {
   if (results.length === 0) {
     return {
       problemStats: {
@@ -93,10 +125,24 @@ function mergeScrapeResults(results: ScrapeResult[]): ScrapeResult {
         solvedOverTime: [],
       },
       contestStats: {
-        currentRating: 0,
-        highestRating: 0,
-        totalContests: 0,
-        ratingHistory: [],
+        leetcode: {
+          currentRating: 0,
+          highestRating: 0,
+          totalContests: 0,
+          ratingHistory: [],
+        },
+        codechef: {
+          currentRating: 0,
+          highestRating: 0,
+          totalContests: 0,
+          ratingHistory: [],
+        },
+        codeforces: {
+          currentRating: 0,
+          highestRating: 0,
+          totalContests: 0,
+          ratingHistory: [],
+        },
       },
       badges: [],
     };
@@ -119,57 +165,68 @@ function mergeScrapeResults(results: ScrapeResult[]): ScrapeResult {
     solvedOverTime: [],
   };
 
-  // Merge contest stats
-  let highestRating = 0;
-  let totalContests = 0;
-  const ratingHistory: ContestStats["ratingHistory"] = [];
+  // Initialize contest stats for each platform
+  const contestStats: ContestStats = {
+    leetcode: {
+      currentRating: 0,
+      highestRating: 0,
+      totalContests: 0,
+      ratingHistory: [],
+    },
+    codechef: {
+      currentRating: 0,
+      highestRating: 0,
+      totalContests: 0,
+      ratingHistory: [],
+    },
+    codeforces: {
+      currentRating: 0,
+      highestRating: 0,
+      totalContests: 0,
+      ratingHistory: [],
+    },
+  };
 
-  // Merge badges
   const badges: Badge[] = [];
 
-  for (const result of results) {
-    // Merge problem stats
-    mergedProblemStats.total += result.problemStats.total;
-    mergedProblemStats.easy += result.problemStats.easy;
-    mergedProblemStats.medium += result.problemStats.medium;
-    mergedProblemStats.hard += result.problemStats.hard;
+  for (const { platform, data } of results) {
+    mergedProblemStats.total += data.problemStats.total;
+    mergedProblemStats.easy += data.problemStats.easy;
+    mergedProblemStats.medium += data.problemStats.medium;
+    mergedProblemStats.hard += data.problemStats.hard;
 
-    // Merge platform stats
-    for (const platform in result.problemStats.platformStats) {
-      const key = platform as CodingPlatform;
-      mergedProblemStats.platformStats[key] += result.problemStats.platformStats[key] || 0;
+    for (const p in data.problemStats.platformStats) {
+      const key = p as CodingPlatform;
+      mergedProblemStats.platformStats[key] += data.problemStats.platformStats[key] || 0;
     }
 
-    // Merge contest stats
-    if (result.contestStats.highestRating > highestRating) {
-      highestRating = result.contestStats.highestRating;
+    // Map contest stats to the correct platform
+    const platformKey = platform.toLowerCase() as 'leetcode' | 'codechef' | 'codeforces';
+    if (platformKey === 'leetcode' || platformKey === 'codechef' || platformKey === 'codeforces') {
+      contestStats[platformKey] = {
+        currentRating: data.contestStats.currentRating,
+        highestRating: data.contestStats.highestRating,
+        totalContests: data.contestStats.totalContests,
+        ratingHistory: data.contestStats.ratingHistory.map(entry => ({
+          date: entry.date,
+          rating: entry.rating,
+        })),
+      };
     }
-    totalContests += result.contestStats.totalContests;
-    ratingHistory.push(...result.contestStats.ratingHistory);
 
-    // Merge badges
-    badges.push(...result.badges);
+    badges.push(...data.badges);
   }
-
-  // Get current rating from the most recent rating history entry
-  const sortedHistory = ratingHistory.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  const currentRating = sortedHistory[0]?.rating || 0;
-
-  const mergedContestStats: ContestStats = {
-    currentRating,
-    highestRating,
-    totalContests,
-    ratingHistory: sortedHistory,
-  };
 
   return {
     problemStats: mergedProblemStats,
-    contestStats: mergedContestStats,
+    contestStats,
     badges,
   };
 }
+
+
+
+
 
 
 

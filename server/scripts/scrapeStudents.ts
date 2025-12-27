@@ -40,21 +40,23 @@ export async function scrapeAllStudents(usernames?: StudentUsernameMap[]) {
     console.log(`[${i + 1}/${studentsToScrape.length}] Processing ${student.name} (${student.username})...`);
 
     try {
-      // Get LeetCode and CodeChef usernames
+      // Get platform usernames
       const leetcodeAccount = student.mainAccounts.find((a) => a.platform === "LeetCode");
       const codechefAccount = student.subAccounts.find((a) => a.platform === "CodeChef");
+      const gfgAccount = student.subAccounts.find((a) => a.platform === "GeeksforGeeks");
+      const hrAccount = student.subAccounts.find((a) => a.platform === "HackerRank");
 
-      // Use provided usernames if available, otherwise use from student accounts
       const leetcodeUsername = usernameMap?.leetcode || leetcodeAccount?.username;
       const codechefUsername = usernameMap?.codechef || codechefAccount?.username;
+      const gfgUsername = gfgAccount?.username;
+      const hrUsername = hrAccount?.username;
 
-      if (!leetcodeUsername && !codechefUsername) {
-        console.log(`  ⚠️  No LeetCode or CodeChef username found, skipping...`);
+      if (!leetcodeUsername && !codechefUsername && !gfgUsername && !hrUsername) {
+        console.log(`  ⚠️  No platform usernames found, skipping...`);
         continue;
       }
 
-      // Scrape data
-      const scrapedData = await scrapeStudentData(leetcodeUsername, codechefUsername);
+      const scrapedData = await scrapeStudentData(leetcodeUsername, codechefUsername, undefined, gfgUsername, hrUsername);
 
       // Update student analytics
       await storage.updateStudentAnalytics(student.username, {
