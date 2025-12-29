@@ -7,12 +7,7 @@ import type { ProblemStats, ContestStats, Badge, CodingPlatform } from "@shared/
 
 export interface ScrapeResult {
   problemStats: ProblemStats;
-  contestStats: {
-    currentRating: number;
-    highestRating: number;
-    totalContests: number;
-    ratingHistory: { date: string; rating: number; platform: CodingPlatform }[];
-  };
+  contestStats: ContestStats;
   badges: Badge[];
 }
 
@@ -106,7 +101,7 @@ export async function scrapeStudentData(
 /**
  * Merges multiple scrape results into a single result
  */
-function mergeScrapeResults(results: Array<{ platform: string; data: ScrapeResult }>): ScrapeResult {
+function mergeScrapeResults(results: Array<{ platform: string; data: { problemStats: ProblemStats; contestStats: ContestStats; badges: Badge[] } }>): ScrapeResult {
   if (results.length === 0) {
     return {
       problemStats: {
@@ -200,18 +195,15 @@ function mergeScrapeResults(results: Array<{ platform: string; data: ScrapeResul
       mergedProblemStats.platformStats[key] += data.problemStats.platformStats[key] || 0;
     }
 
-    // Map contest stats to the correct platform
-    const platformKey = platform.toLowerCase() as 'leetcode' | 'codechef' | 'codeforces';
-    if (platformKey === 'leetcode' || platformKey === 'codechef' || platformKey === 'codeforces') {
-      contestStats[platformKey] = {
-        currentRating: data.contestStats.currentRating,
-        highestRating: data.contestStats.highestRating,
-        totalContests: data.contestStats.totalContests,
-        ratingHistory: data.contestStats.ratingHistory.map(entry => ({
-          date: entry.date,
-          rating: entry.rating,
-        })),
-      };
+    // Merge contest stats from each platform
+    if (data.contestStats.leetcode) {
+      contestStats.leetcode = data.contestStats.leetcode;
+    }
+    if (data.contestStats.codechef) {
+      contestStats.codechef = data.contestStats.codechef;
+    }
+    if (data.contestStats.codeforces) {
+      contestStats.codeforces = data.contestStats.codeforces;
     }
 
     badges.push(...data.badges);
