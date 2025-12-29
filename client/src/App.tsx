@@ -7,12 +7,13 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
-import SignUp from "@/pages/SignUp";
+import AuthCallback from "@/pages/AuthCallback";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import StudentProfile from "@/pages/StudentProfile";
 import EditProfile from "@/pages/EditProfile";
 import AdminDashboard from "@/pages/AdminDashboard";
+import FacultyDashboard from "@/pages/FacultyDashboard";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -105,9 +106,7 @@ function Router() {
       <Route path="/login">
         <PublicRoute component={Login} />
       </Route>
-      <Route path="/signup">
-        <PublicRoute component={SignUp} />
-      </Route>
+      <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/onboarding">
         <ProtectedRoute component={Onboarding} />
       </Route>
@@ -122,6 +121,9 @@ function Router() {
       </Route>
       <Route path="/admin">
         <ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} />
+      </Route>
+      <Route path="/faculty">
+        <ProtectedRoute component={FacultyDashboard} allowedRoles={["faculty"]} />
       </Route>
       <Route component={NotFound} />
     </Switch>

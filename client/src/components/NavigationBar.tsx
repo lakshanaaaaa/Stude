@@ -75,6 +75,19 @@ export function NavigationBar() {
               </Button>
             )}
 
+            {user?.role === "faculty" && (
+              <Button 
+                variant={location === "/faculty" ? "secondary" : "ghost"} 
+                size="sm"
+                className="gap-2"
+                data-testid="link-faculty"
+                onClick={() => setLocation("/faculty")}
+              >
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">My Department</span>
+              </Button>
+            )}
+
             {user?.role === "student" && (
               <Button 
                 variant={location === "/edit-profile" ? "secondary" : "ghost"} 

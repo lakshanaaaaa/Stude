@@ -5,6 +5,8 @@ import bcrypt from "bcrypt";
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<Omit<User, "password">[]>;
   updateUser(id: string, data: Partial<Omit<User, "id" | "password">>): Promise<User | undefined>;
@@ -72,6 +74,7 @@ export class MemStorage implements IStorage {
         password: hashedPassword,
         role: "faculty",
         isOnboarded: true,
+        department: f.dept,
       };
       this.users.set(facultyUser.id, facultyUser);
     }
@@ -184,9 +187,21 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.googleId === googleId,
+    );
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const hashedPassword = await bcrypt.hash(insertUser.password, 10);
+    const hashedPassword = insertUser.password ? await bcrypt.hash(insertUser.password, 10) : undefined;
     const user: User = { ...insertUser, id, password: hashedPassword, isOnboarded: false };
     this.users.set(id, user);
     return user;
