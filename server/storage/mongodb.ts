@@ -16,9 +16,19 @@ export class MongoStorage implements IStorage {
     return user ? (user as User) : undefined;
   }
 
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const user = await UserModel.findOne({ googleId }).lean();
+    return user ? (user as User) : undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const user = await UserModel.findOne({ email }).lean();
+    return user ? (user as User) : undefined;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const hashedPassword = await bcrypt.hash(insertUser.password, 10);
+    const hashedPassword = insertUser.password ? await bcrypt.hash(insertUser.password, 10) : undefined;
     const user = new UserModel({
       _id: id,
       id,

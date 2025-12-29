@@ -28,9 +28,14 @@ export type UserRole = typeof userRoles[number];
 export const userSchema = z.object({
   id: z.string(),
   username: z.string().min(1),
-  password: z.string().min(1),
+  password: z.string().optional(), // Optional for OAuth users
   role: z.enum(userRoles),
   isOnboarded: z.boolean().default(false),
+  googleId: z.string().optional(), // Google OAuth ID
+  email: z.string().email().optional(), // Email from OAuth
+  name: z.string().optional(), // Name from OAuth
+  avatar: z.string().optional(), // Profile picture from OAuth
+  department: z.string().optional(), // Department for faculty users
 });
 
 export const insertUserSchema = userSchema.omit({ id: true });
