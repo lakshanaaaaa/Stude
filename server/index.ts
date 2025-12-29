@@ -106,11 +106,11 @@ app.use((req, res, next) => {
   httpServer.listen(
     {
       port,
-      host: "localhost",
+      host: "0.0.0.0",
     },
     () => {
       log(`serving on port ${port}`);
-      console.log(`\n🚀 Frontend is available at: http://localhost:${port}\n`);
+      console.log(`\n🚀 Frontend is available at: http://0.0.0.0:${port}\n`);
     },
   );
 })();
