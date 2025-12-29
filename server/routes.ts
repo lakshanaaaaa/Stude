@@ -1,9 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import type { UserRole } from "@shared/schema";
+import passport from "passport";
+import type { UserRole, User } from "@shared/schema";
 import { scrapeStudentData } from "./scrapers/index";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
@@ -16,8 +16,13 @@ interface JWTPayload {
 
 declare global {
   namespace Express {
+    interface User {
+      id: string;
+      username: string;
+      role: UserRole;
+    }
     interface Request {
-      user?: JWTPayload;
+      user?: User;
     }
   }
 }
@@ -37,7 +42,11 @@ function authMiddleware(allowedRoles?: UserRole[]) {
         return res.status(403).json({ error: "Insufficient permissions" });
       }
 
-      req.user = decoded;
+      req.user = {
+        id: decoded.id,
+        username: decoded.username,
+        role: decoded.role,
+      };
       next();
     } catch (error) {
       return res.status(401).json({ error: "Invalid token" });
@@ -49,85 +58,45 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  app.post("/api/auth/signup", async (req: Request, res: Response) => {
-    try {
-      const { username, password } = req.body;
+  // Google OAuth routes
+  app.get("/api/auth/google",
+    passport.authenticate("google", { scope: ["profile", "email"], session: false })
+  );
 
-      if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
-      }
+  app.get("/api/auth/google/callback",
+    passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+    async (req: Request, res: Response) => {
+      try {
+        const user = req.user as User;
+        
+        const token = jwt.sign(
+          { id: user.id, username: user.username, role: user.role },
+          JWT_SECRET,
+          { expiresIn: "7d" }
+        );
 
-      // Check if user already exists
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ error: "Username already exists" });
-      }
-
-      // All signups default to student role
-      const newUser = await storage.createUser({
-        username,
-        password,
-        role: "student",
-      });
-
-      const token = jwt.sign(
-        { id: newUser.id, username: newUser.username, role: newUser.role },
-        JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      return res.json({
-        token,
-        user: {
-          id: newUser.id,
-          username: newUser.username,
-          role: newUser.role,
-          isOnboarded: newUser.isOnboarded,
-        },
-      });
-    } catch (error) {
-      console.error("Signup error:", error);
-      return res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
-    try {
-      const { username, password } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
-      }
-
-      const user = await storage.getUserByUsername(username);
-      if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-
-      const token = jwt.sign(
-        { id: user.id, username: user.username, role: user.role },
-        JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      return res.json({
-        token,
-        user: {
+        // Redirect to frontend with token
+        const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5000'}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
           id: user.id,
           username: user.username,
           role: user.role,
           isOnboarded: user.isOnboarded,
-        },
-      });
-    } catch (error) {
-      console.error("Login error:", error);
-      return res.status(500).json({ error: "Internal server error" });
+        }))}`;
+        
+        res.redirect(redirectUrl);
+      } catch (error) {
+        console.error("Google callback error:", error);
+        res.redirect("/login?error=auth_failed");
+      }
     }
+  );
+
+  app.post("/api/auth/signup", async (req: Request, res: Response) => {
+    return res.status(410).json({ error: "Traditional signup is disabled. Please sign in with Google." });
+  });
+
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    return res.status(410).json({ error: "Traditional login is disabled. Please sign in with Google." });
   });
 
   app.get("/api/auth/me", authMiddleware(), async (req: Request, res: Response) => {
@@ -290,20 +259,75 @@ export async function registerRoutes(
   });
 
   // Admin routes
+  app.post("/api/auth/check-username", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.body;
+      
+      if (!username || username.length < 3) {
+        return res.status(400).json({ error: "Username must be at least 3 characters" });
+      }
+
+      const existingUser = await storage.getUserByUsername(username);
+      
+      return res.json({ 
+        available: !existingUser,
+        username 
+      });
+    } catch (error) {
+      console.error("Check username error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/auth/onboard", authMiddleware(["student"]), async (req: Request, res: Response) => {
     try {
-      const { leetcode, codeforces, codechef } = req.body;
-      const username = req.user!.username;
+      const { username, department, leetcode, codeforces, codechef } = req.body;
+      const currentUsername = req.user!.username;
 
-      const user = await storage.getUserByUsername(username);
+      const user = await storage.getUserByUsername(currentUsername);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Check if user is already onboarded
+      if (user.isOnboarded) {
+        const existingStudent = await storage.getStudentByUsername(currentUsername);
+        return res.json({ 
+          success: true, 
+          student: existingStudent,
+          user: {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            isOnboarded: user.isOnboarded,
+          }
+        });
+      }
+
+      // Validate required fields
+      if (!username || !department) {
+        return res.status(400).json({ error: "Username and department are required" });
+      }
+
+      if (!leetcode && !codeforces && !codechef) {
+        return res.status(400).json({ error: "At least one coding platform account is required" });
+      }
+
+      // Check if new username is available (if different from current)
+      if (username !== currentUsername) {
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser) {
+          return res.status(400).json({ error: "Username is already taken" });
+        }
+      }
+
       // Check if student already exists
-      const existingStudent = await storage.getStudentByUsername(username);
+      const existingStudent = await storage.getStudentByUsername(currentUsername);
       if (existingStudent) {
-        const updatedUser = await storage.updateUser(user.id, { isOnboarded: true });
+        const updatedUser = await storage.updateUser(user.id, { 
+          isOnboarded: true,
+          username: username 
+        });
         return res.json({ 
           success: true, 
           student: existingStudent,
@@ -322,16 +346,19 @@ export async function registerRoutes(
       if (codechef) mainAccounts.push({ platform: "CodeChef" as const, username: codechef });
 
       const student = await storage.createStudent({
-        name: username,
-        username,
-        dept: "Not Set",
+        name: user.name || username,
+        username: username,
+        dept: department,
         regNo: "Not Set",
-        email: `${username}@college.edu`,
+        email: user.email || `${username}@college.edu`,
         mainAccounts,
         subAccounts: [],
       });
 
-      const updatedUser = await storage.updateUser(user.id, { isOnboarded: true });
+      const updatedUser = await storage.updateUser(user.id, { 
+        isOnboarded: true,
+        username: username 
+      });
 
       return res.json({ 
         success: true, 
@@ -408,6 +435,154 @@ export async function registerRoutes(
       return res.json({ message: "User deleted successfully" });
     } catch (error) {
       console.error("Delete user error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/users/:id/reset-onboarding", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Reset onboarding status
+      const updatedUser = await storage.updateUser(id, { isOnboarded: false });
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to reset onboarding" });
+      }
+
+      return res.json({ 
+        message: "Onboarding reset successfully",
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          role: updatedUser.role,
+          isOnboarded: updatedUser.isOnboarded,
+        }
+      });
+    } catch (error) {
+      console.error("Reset onboarding error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/users/incomplete-onboarding", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const incompleteUsers = allUsers.filter(u => u.role === "student" && !u.isOnboarded);
+      
+      return res.json(incompleteUsers);
+    } catch (error) {
+      console.error("Get incomplete onboarding error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Faculty routes
+  app.get("/api/faculty/department-stats", authMiddleware(["faculty", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUserByUsername(req.user!.username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get department from user or query param (admin can view any department)
+      const department = req.user!.role === "admin" 
+        ? (req.query.department as string || user.department)
+        : user.department;
+
+      if (!department) {
+        return res.status(400).json({ error: "No department assigned to faculty" });
+      }
+
+      // Get all students from the department
+      const allStudents = await storage.getAllStudents();
+      const deptStudents = allStudents.filter(s => s.dept === department);
+
+      // Calculate department statistics
+      const totalProblems = deptStudents.reduce((sum, s) => sum + (s.problemStats?.total || 0), 0);
+      const avgProblems = deptStudents.length ? Math.round(totalProblems / deptStudents.length) : 0;
+      
+      const totalContests = deptStudents.reduce((sum, s) => {
+        const lc = s.contestStats?.leetcode?.totalContests || 0;
+        const cc = s.contestStats?.codechef?.totalContests || 0;
+        const cf = s.contestStats?.codeforces?.totalContests || 0;
+        return sum + lc + cc + cf;
+      }, 0);
+
+      // Get top performers
+      const topPerformers = [...deptStudents]
+        .sort((a, b) => (b.problemStats?.total || 0) - (a.problemStats?.total || 0))
+        .slice(0, 10);
+
+      // Platform usage
+      const platformStats = deptStudents.reduce((acc, s) => {
+        [...(s.mainAccounts || []), ...(s.subAccounts || [])].forEach(account => {
+          acc[account.platform] = (acc[account.platform] || 0) + 1;
+        });
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Difficulty distribution
+      const difficultyStats = {
+        easy: deptStudents.reduce((sum, s) => sum + (s.problemStats?.easy || 0), 0),
+        medium: deptStudents.reduce((sum, s) => sum + (s.problemStats?.medium || 0), 0),
+        hard: deptStudents.reduce((sum, s) => sum + (s.problemStats?.hard || 0), 0),
+      };
+
+      return res.json({
+        department,
+        totalStudents: deptStudents.length,
+        totalProblems,
+        avgProblems,
+        totalContests,
+        topPerformers,
+        platformStats,
+        difficultyStats,
+        activeStudents: deptStudents.filter(s => (s.problemStats?.total || 0) > 0).length,
+        contestParticipants: deptStudents.filter(s => {
+          const lc = s.contestStats?.leetcode?.totalContests || 0;
+          const cc = s.contestStats?.codechef?.totalContests || 0;
+          const cf = s.contestStats?.codeforces?.totalContests || 0;
+          return (lc + cc + cf) > 0;
+        }).length,
+      });
+    } catch (error) {
+      console.error("Get department stats error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/department", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { department } = req.body;
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.role !== "faculty") {
+        return res.status(400).json({ error: "Only faculty users can be assigned to departments" });
+      }
+
+      const updatedUser = await storage.updateUser(id, { department });
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to update department" });
+      }
+
+      return res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        role: updatedUser.role,
+        department: updatedUser.department,
+      });
+    } catch (error) {
+      console.error("Update department error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   });

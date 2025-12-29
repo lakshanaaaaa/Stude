@@ -1,9 +1,12 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { connectMongoDB } from "./db/mongodb";
 import { initializeStorage } from "./storage";
+import passport from "passport";
+import { configurePassport } from "./passport";
 
 const app = express();
 const httpServer = createServer(app);
@@ -23,6 +26,10 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Initialize Passport
+app.use(passport.initialize());
+configurePassport();
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

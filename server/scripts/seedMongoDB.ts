@@ -146,8 +146,6 @@ export async function seedMongoDB() {
     await storage.createStudent(student);
     console.log(`✅ Created student: ${s.name} (${s.username})`);
   }
-
-  console.log(`\n✨ Seeded ${facultyList.length} faculty and ${studentList.length} students`);
 }
 
 // Run if called directly
