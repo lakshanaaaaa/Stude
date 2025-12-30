@@ -100,11 +100,13 @@ export async function scrapeCodeChef(username: string): Promise<{
       }];
     }
 
-    const contestStats: any = {
-      currentRating,
-      highestRating,
-      totalContests: ratingHistory.length,
-      ratingHistory,
+    const contestStats = {
+      codechef: {
+        currentRating,
+        highestRating,
+        totalContests: ratingHistory.length,
+        ratingHistory,
+      }
     };
 
     console.log(`[CodeChef] Rating: ${currentRating}, Contests: ${ratingHistory.length}`);
@@ -130,7 +132,14 @@ export async function scrapeCodeChef(username: string): Promise<{
         platformStats: { LeetCode: 0, CodeChef: 0, CodeForces: 0, GeeksforGeeks: 0, HackerRank: 0, CodeStudio: 0 },
         solvedOverTime: [],
       },
-      contestStats: { currentRating: 0, highestRating: 0, totalContests: 0, ratingHistory: [] },
+      contestStats: { 
+        codechef: {
+          currentRating: 0, 
+          highestRating: 0, 
+          totalContests: 0, 
+          ratingHistory: [] 
+        }
+      },
       badges: [],
     };
   }

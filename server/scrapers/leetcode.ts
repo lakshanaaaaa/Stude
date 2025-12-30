@@ -29,7 +29,7 @@ interface LeetCodeResponse {
 
 export async function scrapeLeetCode(username: string): Promise<{
   problemStats: ProblemStats;
-  contestStats: ContestStats;
+  contestStats: any;
   badges: Badge[];
 }> {
   const query = `
@@ -183,16 +183,22 @@ export async function scrapeLeetCode(username: string): Promise<{
         rating: Math.round(contest.rating),
       }));
     
-    const contestStats: any = {
-      currentRating: contestRanking?.rating ? Math.round(contestRanking.rating) : 0,
-      highestRating: ratingHistory.length > 0 
-        ? Math.max(...ratingHistory.map((h: any) => h.rating))
-        : 0,
-      totalContests: contestRanking?.attendedContestsCount || 0,
-      ratingHistory,
+    const currentRating = contestRanking?.rating ? Math.round(contestRanking.rating) : 0;
+    const highestRating = ratingHistory.length > 0 
+      ? Math.max(...ratingHistory.map((h: any) => h.rating))
+      : 0;
+    const totalContests = contestRanking?.attendedContestsCount || 0;
+
+    const contestStats = {
+      leetcode: {
+        currentRating,
+        highestRating,
+        totalContests,
+        ratingHistory,
+      }
     };
 
-    console.log(`LeetCode contests - Rating: ${contestStats.currentRating}, Contests: ${contestStats.totalContests}`);
+    console.log(`LeetCode contests - Rating: ${currentRating}, Contests: ${totalContests}`);
 
     // Extract badges based on problem solving achievements
     const badges: Badge[] = [];
@@ -266,10 +272,12 @@ export async function scrapeLeetCode(username: string): Promise<{
         solvedOverTime: [],
       },
       contestStats: {
-        currentRating: 0,
-        highestRating: 0,
-        totalContests: 0,
-        ratingHistory: [],
+        leetcode: {
+          currentRating: 0,
+          highestRating: 0,
+          totalContests: 0,
+          ratingHistory: [],
+        }
       },
       badges: [],
     };

@@ -75,14 +75,15 @@ export async function scrapeCodeForces(username: string): Promise<{
     const totalContests = ratings.length;
 
     const contestStats = {
-      currentRating,
-      highestRating,
-      totalContests,
-      ratingHistory: ratings.map(entry => ({
-        date: new Date(entry.ratingUpdateTimeSeconds * 1000).toISOString().split("T")[0],
-        rating: entry.newRating,
-        platform: "CodeForces" as CodingPlatform,
-      })),
+      codeforces: {
+        currentRating,
+        highestRating,
+        totalContests,
+        ratingHistory: ratings.map(entry => ({
+          date: new Date(entry.ratingUpdateTimeSeconds * 1000).toISOString().split("T")[0],
+          rating: entry.newRating,
+        })),
+      }
     };
 
     const badges: Badge[] = [];
@@ -120,7 +121,14 @@ export async function scrapeCodeForces(username: string): Promise<{
         platformStats: { LeetCode: 0, CodeChef: 0, CodeForces: 0, GeeksforGeeks: 0, HackerRank: 0, CodeStudio: 0 },
         solvedOverTime: [],
       },
-      contestStats: { currentRating: 0, highestRating: 0, totalContests: 0, ratingHistory: [] },
+      contestStats: { 
+        codeforces: {
+          currentRating: 0, 
+          highestRating: 0, 
+          totalContests: 0, 
+          ratingHistory: [] 
+        }
+      },
       badges: [],
     };
   }

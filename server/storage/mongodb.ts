@@ -71,9 +71,6 @@ export class MongoStorage implements IStorage {
     return student ? (student as Student) : undefined;
   }
 
-  /**
-   * Update student analytics data (scraped from platforms)
-   */
   async updateStudentAnalytics(
     username: string,
     analytics: {
@@ -85,6 +82,9 @@ export class MongoStorage implements IStorage {
     const updateData: any = {
       lastScrapedAt: new Date(),
     };
+
+    console.log(`[MongoDB Storage] Updating analytics for ${username}`);
+    console.log(`[MongoDB Storage] Contest stats being saved:`, JSON.stringify(analytics.contestStats, null, 2));
 
     if (analytics.problemStats) {
       updateData.problemStats = analytics.problemStats;
@@ -101,6 +101,11 @@ export class MongoStorage implements IStorage {
       { $set: updateData },
       { new: true, lean: true }
     );
+    
+    if (student) {
+      console.log(`[MongoDB Storage] Updated student contest stats:`, JSON.stringify((student as Student).contestStats, null, 2));
+    }
+    
     return student ? (student as Student) : undefined;
   }
 
