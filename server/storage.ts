@@ -248,6 +248,9 @@ export class MemStorage implements IStorage {
     const student = this.students.get(username);
     if (!student) return undefined;
 
+    console.log(`[Storage] Updating analytics for ${username}`);
+    console.log(`[Storage] Contest stats being saved:`, JSON.stringify(analytics.contestStats, null, 2));
+
     const updatedStudent: Student = {
       ...student,
       problemStats: analytics.problemStats || student.problemStats,
@@ -256,6 +259,9 @@ export class MemStorage implements IStorage {
     };
 
     this.students.set(username, updatedStudent);
+    
+    console.log(`[Storage] Updated student contest stats:`, JSON.stringify(updatedStudent.contestStats, null, 2));
+    
     return updatedStudent;
   }
 

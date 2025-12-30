@@ -196,18 +196,20 @@ function mergeScrapeResults(results: Array<{ platform: string; data: { problemSt
     }
 
     // Merge contest stats from each platform
-    if (data.contestStats.leetcode) {
+    if (data.contestStats?.leetcode) {
       contestStats.leetcode = data.contestStats.leetcode;
     }
-    if (data.contestStats.codechef) {
+    if (data.contestStats?.codechef) {
       contestStats.codechef = data.contestStats.codechef;
     }
-    if (data.contestStats.codeforces) {
+    if (data.contestStats?.codeforces) {
       contestStats.codeforces = data.contestStats.codeforces;
     }
 
     badges.push(...data.badges);
   }
+
+  console.log(`[Merge] Contest stats - LeetCode: ${contestStats.leetcode?.totalContests || 0}, CodeChef: ${contestStats.codechef?.totalContests || 0}, CodeForces: ${contestStats.codeforces?.totalContests || 0}`);
 
   return {
     problemStats: mergedProblemStats,
