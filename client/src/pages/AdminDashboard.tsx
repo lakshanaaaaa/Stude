@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { AdminReports } from "@/components/AdminReports";
 import { 
   Search, 
   Trash2, 
@@ -48,6 +49,7 @@ import {
   Target,
   RefreshCw,
   AlertCircle,
+  FileText,
   UserCog
 } from "lucide-react";
 import type { UserRole, Student } from "@shared/schema";
@@ -127,6 +129,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users/incomplete-onboarding"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
       toast({
         title: "User deleted",
         description: "User has been deleted successfully.",
@@ -148,9 +151,10 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users/incomplete-onboarding"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
       toast({
         title: "Onboarding reset",
-        description: "User onboarding has been reset successfully.",
+        description: "User onboarding has been reset successfully. They will need to choose a new username.",
       });
     },
     onError: (error: Error) => {
@@ -292,6 +296,10 @@ export default function AdminDashboard() {
               </TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="leaderboard">Top Performers</TabsTrigger>
+              <TabsTrigger value="reports" className="gap-2">
+                <FileText className="w-4 h-4" />
+                Reports
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="users" className="space-y-6">
@@ -876,6 +884,10 @@ export default function AdminDashboard() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="reports" className="space-y-6">
+              <AdminReports />
             </TabsContent>
           </Tabs>
         </div>

@@ -5,6 +5,14 @@ import jwt from "jsonwebtoken";
 import passport from "passport";
 import type { UserRole, User } from "@shared/schema";
 import { scrapeStudentData } from "./scrapers/index";
+import { 
+  scrapeAllStudentsForPlatform, 
+  createWeeklySnapshot, 
+  generatePlatformReport, 
+  generateFullReport,
+  getScrapeProgress 
+} from "./services/reportService";
+import { adminStorage } from "./storage/adminMongodb";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
 
@@ -427,6 +435,18 @@ export async function registerRoutes(
         return res.status(400).json({ error: "You cannot delete your own account" });
       }
 
+      // Get user to find associated student record
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Delete associated student record if exists
+      if (user.role === "student" && user.username) {
+        await storage.deleteStudent(user.username);
+      }
+
+      // Delete user
       const success = await storage.deleteUser(id);
       if (!success) {
         return res.status(404).json({ error: "User not found" });
@@ -448,8 +468,19 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Reset onboarding status
-      const updatedUser = await storage.updateUser(id, { isOnboarded: false });
+      // Delete associated student record if exists
+      if (user.username) {
+        await storage.deleteStudent(user.username);
+      }
+
+      // Generate a temporary username based on email or googleId
+      const tempUsername = user.email ? user.email.split('@')[0] : user.googleId || `user_${Date.now()}`;
+
+      // Reset onboarding status and username
+      const updatedUser = await storage.updateUser(id, { 
+        isOnboarded: false,
+        username: tempUsername
+      });
       if (!updatedUser) {
         return res.status(500).json({ error: "Failed to reset onboarding" });
       }
@@ -583,6 +614,159 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("Update department error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ============ ADMIN REPORT GENERATION ROUTES ============
+
+  // Bulk scrape all students for a specific platform
+  app.post("/api/admin/scrape/:platform", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { platform } = req.params;
+      const validPlatforms = ["LeetCode", "CodeChef", "CodeForces", "GeeksforGeeks", "HackerRank"];
+      
+      if (!validPlatforms.includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform" });
+      }
+
+      console.log(`[Admin] Starting bulk scrape for platform: ${platform}`);
+      
+      // Start scraping in background
+      scrapeAllStudentsForPlatform(platform).then(result => {
+        console.log(`[Admin] Bulk scrape completed for ${platform}:`, result);
+      }).catch(err => {
+        console.error(`[Admin] Bulk scrape failed for ${platform}:`, err);
+      });
+
+      return res.json({ 
+        message: `Started scraping all students for ${platform}`,
+        status: "running"
+      });
+    } catch (error) {
+      console.error("Bulk scrape error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get scraping progress
+  app.get("/api/admin/scrape/progress", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const progress = getScrapeProgress();
+      return res.json(progress);
+    } catch (error) {
+      console.error("Get scrape progress error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create weekly snapshot
+  app.post("/api/admin/snapshots", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      console.log("[Admin] Creating weekly snapshot...");
+      const snapshot = await createWeeklySnapshot();
+      console.log("[Admin] Weekly snapshot created:", snapshot.id);
+      
+      return res.json({
+        message: "Weekly snapshot created successfully",
+        snapshot
+      });
+    } catch (error: any) {
+      console.error("Create snapshot error:", error);
+      return res.status(500).json({ error: error.message || "Failed to create snapshot" });
+    }
+  });
+
+  // Get all snapshots
+  app.get("/api/admin/snapshots", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const snapshots = await adminStorage.getAllSnapshots();
+      return res.json(snapshots);
+    } catch (error) {
+      console.error("Get snapshots error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get latest snapshot
+  app.get("/api/admin/snapshots/latest", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const snapshot = await adminStorage.getLatestSnapshot();
+      if (!snapshot) {
+        return res.status(404).json({ error: "No snapshots found" });
+      }
+      return res.json(snapshot);
+    } catch (error) {
+      console.error("Get latest snapshot error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get snapshot by ID
+  app.get("/api/admin/snapshots/:id", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const snapshot = await adminStorage.getSnapshotById(id);
+      if (!snapshot) {
+        return res.status(404).json({ error: "Snapshot not found" });
+      }
+      return res.json(snapshot);
+    } catch (error) {
+      console.error("Get snapshot error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Generate platform-specific report
+  app.get("/api/admin/reports/:platform", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { platform } = req.params;
+      const validPlatforms = ["LeetCode", "CodeChef", "CodeForces", "GeeksforGeeks", "HackerRank"];
+      
+      if (!validPlatforms.includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform" });
+      }
+
+      const report = await generatePlatformReport(platform);
+      if (!report) {
+        return res.status(404).json({ error: "No data available for report. Create a snapshot first." });
+      }
+
+      return res.json(report);
+    } catch (error) {
+      console.error("Generate platform report error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Generate full report (all platforms)
+  app.get("/api/admin/reports", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const report = await generateFullReport();
+      if (!report) {
+        return res.status(404).json({ error: "No data available for report. Create a snapshot first." });
+      }
+
+      return res.json(report);
+    } catch (error) {
+      console.error("Generate full report error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete snapshot
+  app.delete("/api/admin/snapshots/:id", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const success = await adminStorage.deleteSnapshot(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Snapshot not found" });
+      }
+
+      return res.json({ message: "Snapshot deleted successfully" });
+    } catch (error) {
+      console.error("Delete snapshot error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   });

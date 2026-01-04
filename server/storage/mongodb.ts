@@ -127,6 +127,11 @@ export class MongoStorage implements IStorage {
     const result = await UserModel.deleteOne({ id });
     return result.deletedCount > 0;
   }
+
+  async deleteStudent(username: string): Promise<boolean> {
+    const result = await StudentModel.deleteOne({ username });
+    return result.deletedCount > 0;
+  }
 }
 
 

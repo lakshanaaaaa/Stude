@@ -15,6 +15,7 @@ export interface IStorage {
   getStudentByUsername(username: string): Promise<Student | undefined>;
   createStudent(student: InsertStudent): Promise<Student>;
   updateStudent(username: string, data: UpdateStudent): Promise<Student | undefined>;
+  deleteStudent(username: string): Promise<boolean>;
   updateStudentAnalytics(
     username: string,
     analytics: {
@@ -286,6 +287,10 @@ export class MemStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     return this.users.delete(id);
+  }
+
+  async deleteStudent(username: string): Promise<boolean> {
+    return this.students.delete(username);
   }
 }
 
