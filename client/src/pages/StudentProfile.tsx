@@ -25,6 +25,8 @@ export default function StudentProfile() {
   const [isScrapingLocal, setIsScrapingLocal] = useState(false);
 
   const isOwnProfile = user?.username === username && user?.role === "student";
+  // Allow any authenticated user to refresh stats for any student
+  const canRefreshStats = !!user;
 
   const { data: student, isLoading, error } = useQuery<Student>({
     queryKey: ["/api/student", username],
@@ -140,7 +142,7 @@ export default function StudentProfile() {
       <NavigationBar />
       
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {isOwnProfile && (
+        {canRefreshStats && (
           <div className="flex justify-end mb-4">
             <Button
               onClick={() => scrapeMutation.mutate()}
@@ -183,8 +185,20 @@ export default function StudentProfile() {
                 <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Performance Data</h3>
                 <p className="text-muted-foreground mb-4">
-                  Click "Update Data" to fetch the latest performance statistics from coding platforms.
+                  {canRefreshStats 
+                    ? 'Click "Refresh Stats" to fetch the latest performance statistics from coding platforms.'
+                    : 'Performance data has not been fetched yet for this student.'}
                 </p>
+                {canRefreshStats && (
+                  <Button
+                    onClick={() => scrapeMutation.mutate()}
+                    disabled={isScrapingLocal || scrapeMutation.isPending}
+                    className="gap-2"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${(isScrapingLocal || scrapeMutation.isPending) ? 'animate-spin' : ''}`} />
+                    {(isScrapingLocal || scrapeMutation.isPending) ? "Updating..." : "Refresh Stats"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
