@@ -89,16 +89,28 @@ export function NavigationBar() {
             )}
 
             {user?.role === "student" && (
-              <Button 
-                variant={location === "/edit-profile" ? "secondary" : "ghost"} 
-                size="sm"
-                className="gap-2"
-                data-testid="link-edit-profile"
-                onClick={() => setLocation("/edit-profile")}
-              >
-                <Edit3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Edit Profile</span>
-              </Button>
+              <>
+                <Button 
+                  variant={location === `/student/${user.username}` ? "secondary" : "ghost"} 
+                  size="sm"
+                  className="gap-2"
+                  data-testid="link-my-profile"
+                  onClick={() => setLocation(`/student/${user.username}`)}
+                >
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">My Profile</span>
+                </Button>
+                <Button 
+                  variant={location === "/edit-profile" ? "secondary" : "ghost"} 
+                  size="sm"
+                  className="gap-2"
+                  data-testid="link-edit-profile"
+                  onClick={() => setLocation("/edit-profile")}
+                >
+                  <Edit3 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Edit Profile</span>
+                </Button>
+              </>
             )}
           </nav>
 
