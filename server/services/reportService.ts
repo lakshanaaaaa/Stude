@@ -101,8 +101,6 @@ export async function scrapeAllStudentsForPlatform(platform: string): Promise<{
         continue;
       }
 
-      console.log(`[BulkScrape] Scraping ${platform} for ${student.username} (${account.username})`);
-
       // Scrape based on platform
       let scrapedData;
       switch (platform) {
@@ -150,6 +148,8 @@ export async function scrapeAllStudentsForPlatform(platform: string): Promise<{
 export async function createWeeklySnapshot(): Promise<WeeklySnapshot> {
   const students = await storage.getAllStudents();
   const { weekStart, weekEnd } = getWeekBounds();
+
+  console.log(`[Snapshot] Creating for ${students.length} students`);
 
   // Build student snapshots
   const studentSnapshots: StudentSnapshot[] = students.map(student => {

@@ -78,7 +78,6 @@ export async function scrapeLeetCode(username: string): Promise<{
   `;
 
   try {
-    console.log(`Fetching LeetCode data for: ${username}`);
     const response = await axios.post(
       "https://leetcode.com/graphql",
       {
@@ -97,43 +96,17 @@ export async function scrapeLeetCode(username: string): Promise<{
       }
     );
 
-    console.log(`LeetCode response status: ${response.status}`);
-    
     if (!response.data || !response.data.data) {
-      console.error(`Invalid LeetCode response for ${username}:`, JSON.stringify(response.data).substring(0, 200));
       throw new Error(`Invalid response from LeetCode`);
     }
 
     const user = response.data.data.matchedUser;
     if (!user) {
-      console.error(`LeetCode user ${username} not found`);
       throw new Error(`LeetCode user ${username} not found`);
     }
 
-    console.log(`Successfully fetched LeetCode data for ${username}`);
-    
-    // Debug: Log the actual response structure
-    console.log(`[DEBUG] User object keys:`, Object.keys(user));
-    console.log(`[DEBUG] submitStatsGlobal exists:`, !!user.submitStatsGlobal);
-    console.log(`[DEBUG] submitStats exists:`, !!(user as any).submitStats);
-    
-    if (user.submitStatsGlobal) {
-      console.log(`[DEBUG] submitStatsGlobal structure:`, JSON.stringify(user.submitStatsGlobal).substring(0, 200));
-    }
-    if ((user as any).submitStats) {
-      console.log(`[DEBUG] submitStats structure:`, JSON.stringify((user as any).submitStats).substring(0, 200));
-    }
-
     // Extract problem stats - try both submitStatsGlobal and submitStats
-    // submitStatsGlobal is preferred as it includes all problems (including paid)
     const submissions = user.submitStatsGlobal?.acSubmissionNum || user.submitStats?.acSubmissionNum || [];
-    
-    console.log(`[DEBUG] Submissions array length:`, submissions.length);
-    if (submissions.length > 0) {
-      console.log(`[DEBUG] Submissions data:`, JSON.stringify(submissions).substring(0, 500));
-    } else {
-      console.warn(`[WARNING] No submissions data found in response`);
-    }
     
     // Try different case variations for difficulty
     const easy = submissions.find((s: any) => 
@@ -146,12 +119,6 @@ export async function scrapeLeetCode(username: string): Promise<{
       s.difficulty === "Hard" || s.difficulty === "HARD" || s.difficulty === "hard"
     )?.count || 0;
     const total = easy + medium + hard;
-
-    console.log(`LeetCode problems - Total: ${total}, Easy: ${easy}, Medium: ${medium}, Hard: ${hard}`);
-    
-    if (total === 0 && submissions.length > 0) {
-      console.warn(`[WARNING] Total is 0 but submissions array has ${submissions.length} items. Check difficulty field names.`);
-    }
 
     const problemStats: ProblemStats = {
       total,
@@ -172,9 +139,6 @@ export async function scrapeLeetCode(username: string): Promise<{
     // Extract contest stats
     const contestRanking = (response.data.data as any).userContestRanking;
     const contestHistory = (response.data.data as any).userContestRankingHistory || [];
-    
-    console.log(`[DEBUG] Contest ranking:`, contestRanking);
-    console.log(`[DEBUG] Contest history length:`, contestHistory.length);
     
     const ratingHistory = contestHistory
       .filter((contest: any) => contest.attended && contest.rating)
@@ -197,8 +161,6 @@ export async function scrapeLeetCode(username: string): Promise<{
         ratingHistory,
       }
     };
-
-    console.log(`LeetCode contests - Rating: ${currentRating}, Contests: ${totalContests}`);
 
     // Extract badges based on problem solving achievements
     const badges: Badge[] = [];
@@ -250,11 +212,7 @@ export async function scrapeLeetCode(username: string): Promise<{
 
     return { problemStats, contestStats, badges };
   } catch (error: any) {
-    console.error(`Error scraping LeetCode for ${username}:`, error.message);
-    if (error.response) {
-      console.error(`LeetCode API response status: ${error.response.status}`);
-      console.error(`LeetCode API response data:`, JSON.stringify(error.response.data).substring(0, 500));
-    }
+    console.error(`[LC] ${username}: ${error.message}`);
     return {
       problemStats: {
         total: 0,

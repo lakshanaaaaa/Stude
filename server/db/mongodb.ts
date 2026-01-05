@@ -15,17 +15,14 @@ const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb
 let isConnected = false;
 
 export async function connectMongoDB() {
-  if (isConnected) {
-    console.log("MongoDB already connected");
-    return;
-  }
+  if (isConnected) return;
 
   try {
     await mongoose.connect(MONGODB_URI);
     isConnected = true;
-    console.log("✅ MongoDB connected successfully");
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error);
+    console.log("✅ MongoDB connected");
+  } catch (error: any) {
+    console.error("❌ MongoDB error:", error.message);
     throw error;
   }
 }
@@ -35,17 +32,15 @@ export async function disconnectMongoDB() {
   
   await mongoose.disconnect();
   isConnected = false;
-  console.log("MongoDB disconnected");
 }
 
 // Handle connection events
 mongoose.connection.on("error", (err) => {
-  console.error("MongoDB connection error:", err);
+  console.error("MongoDB error:", err.message);
   isConnected = false;
 });
 
 mongoose.connection.on("disconnected", () => {
-  console.log("MongoDB disconnected");
   isConnected = false;
 });
 
