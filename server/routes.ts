@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import passport from "passport";
 import type { UserRole, User } from "@shared/schema";
-import { scrapeStudentData } from "./scrapers/index";
+import { scrapeStudentData, scrapePlatformAccounts, mergeScrapeResults } from "./scrapers/index";
 import { 
   scrapeAllStudentsForPlatform, 
   createWeeklySnapshot, 
@@ -208,33 +208,83 @@ export async function registerRoutes(
       console.log(`Student found. Main accounts:`, student.mainAccounts);
       console.log(`Sub accounts:`, student.subAccounts);
 
-      // Extract usernames from accounts
-      const leetcodeAccount = student.mainAccounts?.find(acc => acc.platform === "LeetCode") || student.subAccounts?.find(acc => acc.platform === "LeetCode");
-      const codechefAccount = student.mainAccounts?.find(acc => acc.platform === "CodeChef") || student.subAccounts?.find(acc => acc.platform === "CodeChef");
-      const codeforcesAccount = student.mainAccounts?.find(acc => acc.platform === "CodeForces") || student.subAccounts?.find(acc => acc.platform === "CodeForces");
+      // Collect all usernames for each platform (main + sub-accounts)
+      const leetcodeUsernames = [
+        ...(student.mainAccounts?.filter(acc => acc.platform === "LeetCode").map(acc => acc.username) || []),
+        ...(student.subAccounts?.filter(acc => acc.platform === "LeetCode").map(acc => acc.username) || [])
+      ];
+      const codechefUsernames = [
+        ...(student.mainAccounts?.filter(acc => acc.platform === "CodeChef").map(acc => acc.username) || []),
+        ...(student.subAccounts?.filter(acc => acc.platform === "CodeChef").map(acc => acc.username) || [])
+      ];
+      const codeforcesUsernames = [
+        ...(student.mainAccounts?.filter(acc => acc.platform === "CodeForces").map(acc => acc.username) || []),
+        ...(student.subAccounts?.filter(acc => acc.platform === "CodeForces").map(acc => acc.username) || [])
+      ];
       const gfgAccount = student.mainAccounts?.find(acc => acc.platform === "GeeksforGeeks") || student.subAccounts?.find(acc => acc.platform === "GeeksforGeeks");
       const hrAccount = student.mainAccounts?.find(acc => acc.platform === "HackerRank") || student.subAccounts?.find(acc => acc.platform === "HackerRank");
 
       console.log(`Platform usernames:`);
-      console.log(`  LeetCode: ${leetcodeAccount?.username || 'Not set'}`);
-      console.log(`  CodeChef: ${codechefAccount?.username || 'Not set'}`);
-      console.log(`  CodeForces: ${codeforcesAccount?.username || 'Not set'}`);
+      console.log(`  LeetCode: ${leetcodeUsernames.length > 0 ? leetcodeUsernames.join(', ') : 'Not set'}`);
+      console.log(`  CodeChef: ${codechefUsernames.length > 0 ? codechefUsernames.join(', ') : 'Not set'}`);
+      console.log(`  CodeForces: ${codeforcesUsernames.length > 0 ? codeforcesUsernames.join(', ') : 'Not set'}`);
       console.log(`  GeeksforGeeks: ${gfgAccount?.username || 'Not set'}`);
       console.log(`  HackerRank: ${hrAccount?.username || 'Not set'}`);
 
-      if (!leetcodeAccount && !codechefAccount && !codeforcesAccount && !gfgAccount && !hrAccount) {
+      if (leetcodeUsernames.length === 0 && codechefUsernames.length === 0 && codeforcesUsernames.length === 0 && !gfgAccount && !hrAccount) {
         console.error(`No platform accounts configured for ${username}`);
         return res.status(400).json({ error: "No platform accounts configured. Please add your platform usernames in Edit Profile." });
       }
 
       console.log(`Starting scraping process...`);
-      const scrapedData = await scrapeStudentData(
-        leetcodeAccount?.username,
-        codechefAccount?.username,
-        codeforcesAccount?.username,
-        gfgAccount?.username,
-        hrAccount?.username
-      );
+      
+      // Aggregate contest data from all accounts for each platform
+      const results: Array<{ platform: string; data: { problemStats: any; contestStats: any; badges: any[] } }> = [];
+      
+      // Scrape LeetCode (all accounts - main + sub-accounts)
+      if (leetcodeUsernames.length > 0) {
+        const leetcodeData = await scrapePlatformAccounts("LeetCode", leetcodeUsernames);
+        results.push({ platform: "LeetCode", data: leetcodeData });
+      }
+      
+      // Scrape CodeChef (all accounts - main + sub-accounts)
+      if (codechefUsernames.length > 0) {
+        const codechefData = await scrapePlatformAccounts("CodeChef", codechefUsernames);
+        results.push({ platform: "CodeChef", data: codechefData });
+      }
+      
+      // Scrape CodeForces (all accounts - main + sub-accounts)
+      if (codeforcesUsernames.length > 0) {
+        const codeforcesData = await scrapePlatformAccounts("CodeForces", codeforcesUsernames);
+        results.push({ platform: "CodeForces", data: codeforcesData });
+      }
+      
+      // For GeeksforGeeks and HackerRank, use single account (they don't support multi-account aggregation yet)
+      // Scrape GeeksforGeeks (single account)
+      if (gfgAccount) {
+        const gfgData = await scrapeStudentData(undefined, undefined, undefined, gfgAccount.username, undefined);
+        // Create result structure
+        const gfgResult = {
+          problemStats: gfgData.problemStats,
+          contestStats: gfgData.contestStats,
+          badges: gfgData.badges,
+        };
+        results.push({ platform: "GeeksforGeeks", data: gfgResult });
+      }
+      
+      // Scrape HackerRank (single account)
+      if (hrAccount) {
+        const hrData = await scrapeStudentData(undefined, undefined, undefined, undefined, hrAccount.username);
+        const hrResult = {
+          problemStats: hrData.problemStats,
+          contestStats: hrData.contestStats,
+          badges: hrData.badges,
+        };
+        results.push({ platform: "HackerRank", data: hrResult });
+      }
+      
+      // Merge all results
+      const scrapedData = mergeScrapeResults(results);
 
       console.log(`Scraping completed. Results:`);
       console.log(`  Total problems: ${scrapedData.problemStats.total}`);

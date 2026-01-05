@@ -173,7 +173,7 @@ export default function StudentProfile() {
 
           {analytics && (
             <>
-              {analytics.problemStats && <ProblemStatsCard stats={analytics.problemStats} />}
+              {analytics.problemStats && <ProblemStatsCard stats={analytics.problemStats} contestStats={analytics.contestStats} />}
               {analytics.contestStats && <ContestStatsCard stats={analytics.contestStats} />}
               {analytics.badges && analytics.badges.length > 0 && <BadgeGrid badges={analytics.badges} />}
             </>

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target } from "lucide-react";
+import { Target, Trophy } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -13,10 +13,11 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import type { ProblemStats } from "@shared/schema";
+import type { ProblemStats, ContestStats } from "@shared/schema";
 
 interface ProblemStatsCardProps {
   stats: ProblemStats;
+  contestStats?: ContestStats;
 }
 
 const DIFFICULTY_COLORS = {
@@ -25,32 +26,75 @@ const DIFFICULTY_COLORS = {
   hard: "hsl(0, 84%, 60%)",
 };
 
-export function ProblemStatsCard({ stats }: ProblemStatsCardProps) {
+export function ProblemStatsCard({ stats, contestStats }: ProblemStatsCardProps) {
   const pieData = [
     { name: "Easy", value: stats.easy, color: DIFFICULTY_COLORS.easy },
     { name: "Medium", value: stats.medium, color: DIFFICULTY_COLORS.medium },
     { name: "Hard", value: stats.hard, color: DIFFICULTY_COLORS.hard },
   ];
 
+  // Get contest counts from contestStats
+  const leetcodeContests = contestStats?.leetcode?.totalContests || 0;
+  const codechefContests = contestStats?.codechef?.totalContests || 0;
+  const codeforcesContests = contestStats?.codeforces?.totalContests || 0;
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold">Problem Solving Analytics</h2>
       
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-              <Target className="w-5 h-5 text-primary" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                <Target className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Problems Solved</p>
+                <p className="text-2xl font-bold" data-testid="text-problems-total">
+                  {stats.total}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Problems Solved</p>
-              <p className="text-2xl font-bold" data-testid="text-problems-total">
-                {stats.total}
-              </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/10">
+                <Trophy className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground mb-1">Total Contests</p>
+                <div className="flex gap-4 text-sm">
+                  {leetcodeContests > 0 && (
+                    <div>
+                      <span className="text-muted-foreground">LC:</span>
+                      <span className="ml-1 font-semibold">{leetcodeContests}</span>
+                    </div>
+                  )}
+                  {codechefContests > 0 && (
+                    <div>
+                      <span className="text-muted-foreground">CC:</span>
+                      <span className="ml-1 font-semibold">{codechefContests}</span>
+                    </div>
+                  )}
+                  {codeforcesContests > 0 && (
+                    <div>
+                      <span className="text-muted-foreground">CF:</span>
+                      <span className="ml-1 font-semibold">{codeforcesContests}</span>
+                    </div>
+                  )}
+                  {leetcodeContests === 0 && codechefContests === 0 && codeforcesContests === 0 && (
+                    <span className="text-muted-foreground">0</span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>

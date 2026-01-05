@@ -12,6 +12,75 @@ export interface ScrapeResult {
 }
 
 /**
+ * Scrapes data for all accounts of a specific platform and aggregates the results
+ */
+export async function scrapePlatformAccounts(
+  platform: "LeetCode" | "CodeChef" | "CodeForces",
+  usernames: string[]
+): Promise<{ problemStats: ProblemStats; contestStats: ContestStats; badges: Badge[] }> {
+  const results: Array<{ platform: string; data: { problemStats: ProblemStats; contestStats: ContestStats; badges: Badge[] } }> = [];
+
+  for (const username of usernames) {
+    try {
+      let data: { problemStats: ProblemStats; contestStats: ContestStats; badges: Badge[] };
+      
+      switch (platform) {
+        case "LeetCode":
+          data = await scrapeLeetCode(username);
+          break;
+        case "CodeChef":
+          data = await scrapeCodeChef(username);
+          break;
+        case "CodeForces":
+          data = await scrapeCodeForces(username);
+          break;
+        default:
+          continue;
+      }
+      
+      results.push({ platform, data });
+      // Rate limiting between accounts
+      if (usernames.length > 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    } catch (error: any) {
+      console.error(`[${platform}] Failed for ${username}:`, error.message);
+      // Continue with other accounts
+    }
+  }
+
+  if (results.length === 0) {
+    return {
+      problemStats: {
+        total: 0,
+        easy: 0,
+        medium: 0,
+        hard: 0,
+        platformStats: {
+          LeetCode: 0,
+          CodeChef: 0,
+          CodeForces: 0,
+          GeeksforGeeks: 0,
+          HackerRank: 0,
+          CodeStudio: 0,
+        },
+        solvedOverTime: [],
+      },
+      contestStats: {
+        leetcode: { currentRating: 0, highestRating: 0, totalContests: 0, ratingHistory: [] },
+        codechef: { currentRating: 0, highestRating: 0, totalContests: 0, ratingHistory: [] },
+        codeforces: { currentRating: 0, highestRating: 0, totalContests: 0, ratingHistory: [] },
+      },
+      badges: [],
+    };
+  }
+
+  // Use mergeScrapeResults to aggregate results from multiple accounts
+  const merged = mergeScrapeResults(results);
+  return merged;
+}
+
+/**
  * Scrapes data from multiple platforms and merges the results
  */
 export async function scrapeStudentData(
@@ -99,9 +168,117 @@ export async function scrapeStudentData(
 }
 
 /**
- * Merges multiple scrape results into a single result
+ * Aggregates rating history from multiple accounts for the same platform
+ * Combines all contests chronologically, keeping all unique contests
+ * Deduplicates only if same date AND same rating (same contest)
  */
-function mergeScrapeResults(results: Array<{ platform: string; data: { problemStats: ProblemStats; contestStats: ContestStats; badges: Badge[] } }>): ScrapeResult {
+function aggregateRatingHistory(
+  histories: Array<{ date: string; rating: number }>[]
+): { date: string; rating: number }[] {
+  // Combine all rating histories
+  const allEntries: Array<{ date: string; rating: number; timestamp: number }> = [];
+  
+  for (const history of histories) {
+    for (const entry of history) {
+      // Parse date to timestamp for comparison
+      let timestamp: number;
+      if (entry.date.includes('T')) {
+        timestamp = new Date(entry.date).getTime();
+      } else {
+        // Date-only format
+        timestamp = new Date(entry.date + 'T00:00:00Z').getTime();
+      }
+      
+      allEntries.push({
+        date: entry.date,
+        rating: entry.rating,
+        timestamp,
+      });
+    }
+  }
+
+  // Deduplicate: same date AND same rating = same contest
+  // Use a Set with a composite key (date + rating) to identify unique contests
+  const contestSet = new Set<string>();
+  const uniqueEntries: Array<{ date: string; rating: number; timestamp: number }> = [];
+  
+  for (const entry of allEntries) {
+    // Create a unique key: date (YYYY-MM-DD) + rating
+    // This ensures we only deduplicate if it's the exact same contest
+    const dateKey = entry.date.split('T')[0];
+    const contestKey = `${dateKey}-${entry.rating}`;
+    
+    if (!contestSet.has(contestKey)) {
+      contestSet.add(contestKey);
+      uniqueEntries.push(entry);
+    }
+  }
+
+  // Sort by timestamp (chronological order - oldest to newest)
+  const aggregated = uniqueEntries
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map(({ date, rating }) => ({ date, rating }));
+
+  return aggregated;
+}
+
+/**
+ * Aggregates contest stats from multiple accounts for the same platform
+ */
+function aggregatePlatformContestStats(
+  stats: Array<{
+    currentRating: number;
+    highestRating: number;
+    totalContests: number;
+    ratingHistory: Array<{ date: string; rating: number }>;
+  }>
+): {
+  currentRating: number;
+  highestRating: number;
+  totalContests: number;
+  ratingHistory: Array<{ date: string; rating: number }>;
+} {
+  if (stats.length === 0) {
+    return {
+      currentRating: 0,
+      highestRating: 0,
+      totalContests: 0,
+      ratingHistory: [],
+    };
+  }
+
+  // Aggregate rating history (combine all contests chronologically)
+  const ratingHistories = stats.map(s => s.ratingHistory || []);
+  const aggregatedHistory = aggregateRatingHistory(ratingHistories);
+
+  // Get the latest rating from aggregated history (most recent contest)
+  const currentRating = aggregatedHistory.length > 0
+    ? aggregatedHistory[aggregatedHistory.length - 1].rating
+    : Math.max(...stats.map(s => s.currentRating || 0));
+
+  // Get highest rating across all accounts
+  const highestRating = Math.max(
+    ...stats.map(s => s.highestRating || 0),
+    ...aggregatedHistory.map(h => h.rating)
+  );
+
+  // Total contests = SUM of all contests from all accounts (main + sub-accounts)
+  // This gives: main_account_contests + sub_account_1_contests + sub_account_2_contests + ...
+  const totalContests = stats.reduce((sum, s) => sum + (s.totalContests || 0), 0);
+
+  return {
+    currentRating,
+    highestRating,
+    totalContests,
+    ratingHistory: aggregatedHistory,
+  };
+}
+
+/**
+ * Merges multiple scrape results into a single result
+ * Handles aggregation of contest data from multiple accounts for the same platform
+ */
+export function mergeScrapeResults(results: Array<{ platform: string; data: { problemStats: ProblemStats; contestStats: ContestStats; badges: Badge[] } }>): ScrapeResult {
   if (results.length === 0) {
     return {
       problemStats: {
@@ -160,26 +337,15 @@ function mergeScrapeResults(results: Array<{ platform: string; data: { problemSt
     solvedOverTime: [],
   };
 
-  // Initialize contest stats for each platform
-  const contestStats: ContestStats = {
-    leetcode: {
-      currentRating: 0,
-      highestRating: 0,
-      totalContests: 0,
-      ratingHistory: [],
-    },
-    codechef: {
-      currentRating: 0,
-      highestRating: 0,
-      totalContests: 0,
-      ratingHistory: [],
-    },
-    codeforces: {
-      currentRating: 0,
-      highestRating: 0,
-      totalContests: 0,
-      ratingHistory: [],
-    },
+  // Group results by platform for contest stats aggregation
+  const platformGroups: {
+    leetcode: Array<{ currentRating: number; highestRating: number; totalContests: number; ratingHistory: Array<{ date: string; rating: number }> }>;
+    codechef: Array<{ currentRating: number; highestRating: number; totalContests: number; ratingHistory: Array<{ date: string; rating: number }> }>;
+    codeforces: Array<{ currentRating: number; highestRating: number; totalContests: number; ratingHistory: Array<{ date: string; rating: number }> }>;
+  } = {
+    leetcode: [],
+    codechef: [],
+    codeforces: [],
   };
 
   const badges: Badge[] = [];
@@ -195,19 +361,26 @@ function mergeScrapeResults(results: Array<{ platform: string; data: { problemSt
       mergedProblemStats.platformStats[key] += data.problemStats.platformStats[key] || 0;
     }
 
-    // Merge contest stats from each platform
+    // Group contest stats by platform for aggregation
     if (data.contestStats?.leetcode) {
-      contestStats.leetcode = data.contestStats.leetcode;
+      platformGroups.leetcode.push(data.contestStats.leetcode);
     }
     if (data.contestStats?.codechef) {
-      contestStats.codechef = data.contestStats.codechef;
+      platformGroups.codechef.push(data.contestStats.codechef);
     }
     if (data.contestStats?.codeforces) {
-      contestStats.codeforces = data.contestStats.codeforces;
+      platformGroups.codeforces.push(data.contestStats.codeforces);
     }
 
     badges.push(...data.badges);
   }
+
+  // Aggregate contest stats for each platform
+  const contestStats: ContestStats = {
+    leetcode: aggregatePlatformContestStats(platformGroups.leetcode),
+    codechef: aggregatePlatformContestStats(platformGroups.codechef),
+    codeforces: aggregatePlatformContestStats(platformGroups.codeforces),
+  };
 
   console.log(`[Merge] Contest stats - LeetCode: ${contestStats.leetcode?.totalContests || 0}, CodeChef: ${contestStats.codechef?.totalContests || 0}, CodeForces: ${contestStats.codeforces?.totalContests || 0}`);
 
@@ -217,6 +390,7 @@ function mergeScrapeResults(results: Array<{ platform: string; data: { problemSt
     badges,
   };
 }
+
 
 
 
