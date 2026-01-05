@@ -78,11 +78,11 @@ export async function getAdminConnection(): Promise<mongoose.Connection> {
   
   await new Promise<void>((resolve, reject) => {
     adminConnection!.on("connected", () => {
-      console.log("✅ Connected to Admin MongoDB");
+      console.log("✅ Admin MongoDB connected");
       resolve();
     });
     adminConnection!.on("error", (err) => {
-      console.error("❌ Admin MongoDB connection error:", err);
+      console.error("❌ Admin MongoDB error:", err.message);
       reject(err);
     });
   });

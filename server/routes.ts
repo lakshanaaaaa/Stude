@@ -152,12 +152,17 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/student/:username", authMiddleware(["student"]), async (req: Request, res: Response) => {
+  app.patch("/api/student/:username", authMiddleware(["student", "admin"]), async (req: Request, res: Response) => {
     try {
       const { username } = req.params;
 
-      if (req.user!.username !== username) {
-        return res.status(403).json({ error: "You can only edit your own profile" });
+      // Allow admins to edit any profile, students can only edit their own
+      if (req.user!.role !== "admin" && req.user!.username !== username) {
+        // Also check by user ID in case username changed after token was issued
+        const currentUser = await storage.getUser(req.user!.id);
+        if (!currentUser || currentUser.username !== username) {
+          return res.status(403).json({ error: "You can only edit your own profile" });
+        }
       }
 
       const student = await storage.getStudentByUsername(username);
@@ -194,19 +199,13 @@ export async function registerRoutes(
   });
 
   app.post("/api/student/:username/scrape", authMiddleware(), async (req: Request, res: Response) => {
+    const { username } = req.params;
     try {
-      const { username } = req.params;
-      console.log(`\n=== Scraping request for: ${username} ===`);
-      
       const student = await storage.getStudentByUsername(username);
 
       if (!student) {
-        console.error(`Student not found: ${username}`);
         return res.status(404).json({ error: "Student not found" });
       }
-
-      console.log(`Student found. Main accounts:`, student.mainAccounts);
-      console.log(`Sub accounts:`, student.subAccounts);
 
       // Extract usernames from accounts
       const leetcodeAccount = student.mainAccounts?.find(acc => acc.platform === "LeetCode") || student.subAccounts?.find(acc => acc.platform === "LeetCode");
@@ -215,19 +214,11 @@ export async function registerRoutes(
       const gfgAccount = student.mainAccounts?.find(acc => acc.platform === "GeeksforGeeks") || student.subAccounts?.find(acc => acc.platform === "GeeksforGeeks");
       const hrAccount = student.mainAccounts?.find(acc => acc.platform === "HackerRank") || student.subAccounts?.find(acc => acc.platform === "HackerRank");
 
-      console.log(`Platform usernames:`);
-      console.log(`  LeetCode: ${leetcodeAccount?.username || 'Not set'}`);
-      console.log(`  CodeChef: ${codechefAccount?.username || 'Not set'}`);
-      console.log(`  CodeForces: ${codeforcesAccount?.username || 'Not set'}`);
-      console.log(`  GeeksforGeeks: ${gfgAccount?.username || 'Not set'}`);
-      console.log(`  HackerRank: ${hrAccount?.username || 'Not set'}`);
-
       if (!leetcodeAccount && !codechefAccount && !codeforcesAccount && !gfgAccount && !hrAccount) {
-        console.error(`No platform accounts configured for ${username}`);
         return res.status(400).json({ error: "No platform accounts configured. Please add your platform usernames in Edit Profile." });
       }
 
-      console.log(`Starting scraping process...`);
+      console.log(`[Scrape] ${username}`);
       const scrapedData = await scrapeStudentData(
         leetcodeAccount?.username,
         codechefAccount?.username,
@@ -236,23 +227,14 @@ export async function registerRoutes(
         hrAccount?.username
       );
 
-      console.log(`Scraping completed. Results:`);
-      console.log(`  Total problems: ${scrapedData.problemStats.total}`);
-      console.log(`  LeetCode contests: ${scrapedData.contestStats.leetcode?.totalContests || 0}`);
-      console.log(`  CodeChef contests: ${scrapedData.contestStats.codechef?.totalContests || 0}`);
-      console.log(`  CodeForces contests: ${scrapedData.contestStats.codeforces?.totalContests || 0}`);
-      console.log(`  Badges: ${scrapedData.badges.length}`);
-
       // Update student with scraped data
       const updatedStudent = await storage.updateStudentAnalytics(username, scrapedData);
 
       if (!updatedStudent) {
-        console.error(`Failed to update student analytics for ${username}`);
         return res.status(500).json({ error: "Failed to update student data" });
       }
 
-      console.log(`Successfully updated student data for ${username}`);
-      console.log(`=== Scraping complete ===\n`);
+      console.log(`[Scrape] ${username} done: ${scrapedData.problemStats.total} problems`);
 
       return res.json({
         success: true,
@@ -260,8 +242,7 @@ export async function registerRoutes(
         message: "Profile data scraped and updated successfully"
       });
     } catch (error: any) {
-      console.error("Scrape student error:", error);
-      console.error("Error stack:", error.stack);
+      console.error(`[Scrape] ${username} failed:`, error.message);
       return res.status(500).json({ error: error.message || "Failed to scrape student data" });
     }
   });
@@ -336,9 +317,18 @@ export async function registerRoutes(
           isOnboarded: true,
           username: username 
         });
+
+        // Generate new token with updated username
+        const newToken = jwt.sign(
+          { id: updatedUser!.id, username: updatedUser!.username, role: updatedUser!.role },
+          JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+
         return res.json({ 
           success: true, 
           student: existingStudent,
+          token: newToken,
           user: {
             id: updatedUser!.id,
             username: updatedUser!.username,
@@ -368,9 +358,17 @@ export async function registerRoutes(
         username: username 
       });
 
+      // Generate new token with updated username
+      const newToken = jwt.sign(
+        { id: updatedUser!.id, username: updatedUser!.username, role: updatedUser!.role },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
       return res.json({ 
         success: true, 
         student,
+        token: newToken,
         user: {
           id: updatedUser!.id,
           username: updatedUser!.username,
@@ -630,13 +628,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid platform" });
       }
 
-      console.log(`[Admin] Starting bulk scrape for platform: ${platform}`);
-      
       // Start scraping in background
       scrapeAllStudentsForPlatform(platform).then(result => {
-        console.log(`[Admin] Bulk scrape completed for ${platform}:`, result);
+        console.log(`[BulkScrape] ${platform}: ${result.scrapedCount} done`);
       }).catch(err => {
-        console.error(`[Admin] Bulk scrape failed for ${platform}:`, err);
+        console.error(`[BulkScrape] ${platform} failed:`, err.message);
       });
 
       return res.json({ 
@@ -663,9 +659,8 @@ export async function registerRoutes(
   // Create weekly snapshot
   app.post("/api/admin/snapshots", authMiddleware(["admin"]), async (req: Request, res: Response) => {
     try {
-      console.log("[Admin] Creating weekly snapshot...");
       const snapshot = await createWeeklySnapshot();
-      console.log("[Admin] Weekly snapshot created:", snapshot.id);
+      console.log(`[Snapshot] Created: ${snapshot.id}`);
       
       return res.json({
         message: "Weekly snapshot created successfully",

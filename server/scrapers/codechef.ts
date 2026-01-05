@@ -17,7 +17,6 @@ export async function scrapeCodeChef(username: string): Promise<{
     });
 
     const $ = cheerio.load(response.data);
-    console.log(`[CodeChef] Fetching data for: ${username}`);
 
     let totalSolved = 0;
     
@@ -30,8 +29,6 @@ export async function scrapeCodeChef(username: string): Promise<{
         return false;
       }
     });
-
-    console.log(`[CodeChef] Problems solved: ${totalSolved}`);
 
     const problemStats: ProblemStats = {
       total: totalSolved,
@@ -83,13 +80,12 @@ export async function scrapeCodeChef(username: string): Promise<{
               date: entry.end_date,
               rating: parseInt(entry.rating, 10),
             }));
-            console.log(`[CodeChef] Extracted ${ratingHistory.length} rating entries from page`);
             break;
           }
         }
       }
     } catch (parseError) {
-      console.log(`[CodeChef] Failed to parse rating data from page`);
+      // Failed to parse rating data
     }
 
     // If no data from page, use current rating as single point
@@ -109,8 +105,6 @@ export async function scrapeCodeChef(username: string): Promise<{
       }
     };
 
-    console.log(`[CodeChef] Rating: ${currentRating}, Contests: ${ratingHistory.length}`);
-
     const badges: Badge[] = [];
     if (currentRating >= 2500) badges.push({ id: `codechef-7star-${username}`, name: "7 Star", platform: "CodeChef", icon: "⭐", level: 7 });
     else if (currentRating >= 2200) badges.push({ id: `codechef-6star-${username}`, name: "6 Star", platform: "CodeChef", icon: "⭐", level: 6 });
@@ -122,7 +116,7 @@ export async function scrapeCodeChef(username: string): Promise<{
 
     return { problemStats, contestStats, badges };
   } catch (error: any) {
-    console.error(`Error scraping CodeChef for ${username}:`, error.message);
+    console.error(`[CC] ${username}: ${error.message}`);
     return {
       problemStats: {
         total: 0,

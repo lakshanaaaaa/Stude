@@ -55,7 +55,7 @@ const departments = [
 
 export default function Onboarding() {
   const [, setLocation] = useLocation();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, login } = useAuth();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
@@ -107,7 +107,12 @@ export default function Onboarding() {
     },
     onSuccess: (response: any) => {
       if (user && response.user) {
-        updateUser(response.user);
+        // If a new token is provided (username changed), update it
+        if (response.token) {
+          login(response.token, response.user);
+        } else {
+          updateUser(response.user);
+        }
         setLocation("/dashboard");
       }
       toast({
