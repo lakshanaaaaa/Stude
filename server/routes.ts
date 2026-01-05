@@ -287,8 +287,6 @@ export async function registerRoutes(
       
       // Merge all results
       const scrapedData = mergeScrapeResults(results);
-      );
->>>>>>> 0de8ffec8e984597b965a9fc410f1372a38e57e8
 
       // Update student with scraped data
       const updatedStudent = await storage.updateStudentAnalytics(username, scrapedData);
