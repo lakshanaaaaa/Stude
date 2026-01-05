@@ -13,8 +13,6 @@ export async function scrapeHackerRank(username: string): Promise<{
       timeout: 10000,
     });
 
-    console.log(`[HackerRank] Fetching data for: ${username}`);
-
     const data = response.data;
     let totalSolved = 0;
 
@@ -25,8 +23,6 @@ export async function scrapeHackerRank(username: string): Promise<{
         }
       }
     }
-
-    console.log(`[HackerRank] Problems solved: ${totalSolved}`);
 
     return {
       problemStats: {
@@ -48,7 +44,7 @@ export async function scrapeHackerRank(username: string): Promise<{
       badges: [],
     };
   } catch (error: any) {
-    console.error(`Error scraping HackerRank for ${username}:`, error.message);
+    console.error(`[HR] ${username}: ${error.message}`);
     return {
       problemStats: {
         total: 0,

@@ -25,8 +25,6 @@ export async function scrapeCodeForces(username: string): Promise<{
   badges: Badge[];
 }> {
   try {
-    console.log(`[CodeForces] Fetching data for: ${username}`);
-    
     const userInfo = await axios.get(`https://codeforces.com/api/user.info?handles=${username}`, { timeout: 10000 });
     
     if (userInfo.data.status !== "OK") {
@@ -34,7 +32,6 @@ export async function scrapeCodeForces(username: string): Promise<{
     }
 
     const user: CodeforcesUser = userInfo.data.result[0];
-    console.log(`[CodeForces] User found: ${user.handle}, Rating: ${user.rating || 0}`);
 
     const [ratingHistory, submissions] = await Promise.all([
       axios.get(`https://codeforces.com/api/user.rating?handle=${username}`, { timeout: 10000 }).catch(() => ({ data: { result: [] } })),
@@ -52,7 +49,6 @@ export async function scrapeCodeForces(username: string): Promise<{
     });
 
     const totalSolved = solvedProblems.size;
-    console.log(`[CodeForces] Problems solved: ${totalSolved}`);
 
     const problemStats: ProblemStats = {
       total: totalSolved,
@@ -108,10 +104,7 @@ export async function scrapeCodeForces(username: string): Promise<{
     console.log(`[CodeForces] Success - Problems: ${totalSolved}, Rating: ${currentRating}`);
     return { problemStats, contestStats, badges };
   } catch (error: any) {
-    console.error(`[CodeForces] Error for ${username}:`, error.message);
-    if (error.response) {
-      console.error(`[CodeForces] API Response:`, error.response.data);
-    }
+    console.error(`[CF] ${username}: ${error.message}`);
     return {
       problemStats: {
         total: 0,
