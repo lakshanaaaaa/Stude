@@ -79,21 +79,61 @@ export class MongoStorage implements IStorage {
       badges?: Student["badges"];
     }
   ): Promise<Student | undefined> {
+    // First get existing student to merge data
+    const existingStudent = await StudentModel.findOne({ username }).lean() as Student | null;
+    
     const updateData: any = {
       lastScrapedAt: new Date(),
     };
 
-    console.log(`[MongoDB Storage] Updating analytics for ${username}`);
-    console.log(`[MongoDB Storage] Contest stats being saved:`, JSON.stringify(analytics.contestStats, null, 2));
+    console.log(`[MongoDB] Analytics updated: ${username}`);
 
     if (analytics.problemStats) {
-      updateData.problemStats = analytics.problemStats;
+      // Merge platform stats instead of replacing
+      if (existingStudent?.problemStats?.platformStats) {
+        const mergedPlatformStats = {
+          ...existingStudent.problemStats.platformStats,
+          ...analytics.problemStats.platformStats,
+        };
+        updateData.problemStats = {
+          ...analytics.problemStats,
+          platformStats: mergedPlatformStats,
+          // Recalculate total from merged platform stats
+          total: Object.values(mergedPlatformStats).reduce((sum: number, val: any) => sum + (val || 0), 0),
+        };
+      } else {
+        updateData.problemStats = analytics.problemStats;
+      }
     }
+    
     if (analytics.contestStats) {
-      updateData.contestStats = analytics.contestStats;
+      // Merge contest stats instead of replacing
+      if (existingStudent?.contestStats) {
+        updateData.contestStats = {
+          leetcode: analytics.contestStats.leetcode?.totalContests 
+            ? analytics.contestStats.leetcode 
+            : existingStudent.contestStats.leetcode,
+          codechef: analytics.contestStats.codechef?.totalContests 
+            ? analytics.contestStats.codechef 
+            : existingStudent.contestStats.codechef,
+          codeforces: analytics.contestStats.codeforces?.totalContests 
+            ? analytics.contestStats.codeforces 
+            : existingStudent.contestStats.codeforces,
+        };
+      } else {
+        updateData.contestStats = analytics.contestStats;
+      }
     }
+    
     if (analytics.badges) {
-      updateData.badges = analytics.badges;
+      // Merge badges, avoiding duplicates
+      if (existingStudent?.badges) {
+        const existingIds = new Set(existingStudent.badges.map(b => b.id));
+        const newBadges = analytics.badges.filter(b => !existingIds.has(b.id));
+        updateData.badges = [...existingStudent.badges, ...newBadges];
+      } else {
+        updateData.badges = analytics.badges;
+      }
     }
 
     const student = await StudentModel.findOneAndUpdate(
@@ -101,10 +141,6 @@ export class MongoStorage implements IStorage {
       { $set: updateData },
       { new: true, lean: true }
     );
-    
-    if (student) {
-      console.log(`[MongoDB Storage] Updated student contest stats:`, JSON.stringify((student as Student).contestStats, null, 2));
-    }
     
     return student ? (student as Student) : undefined;
   }

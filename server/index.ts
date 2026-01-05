@@ -57,8 +57,12 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      
+      // Only add short response info for non-GET requests or errors
+      if (capturedJsonResponse && (req.method !== "GET" || res.statusCode >= 400)) {
+        const responseStr = JSON.stringify(capturedJsonResponse);
+        // Truncate long responses
+        logLine += ` :: ${responseStr.length > 100 ? responseStr.substring(0, 100) + '...' : responseStr}`;
       }
 
       log(logLine);

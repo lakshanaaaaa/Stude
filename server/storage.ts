@@ -249,19 +249,54 @@ export class MemStorage implements IStorage {
     const student = this.students.get(username);
     if (!student) return undefined;
 
-    console.log(`[Storage] Updating analytics for ${username}`);
-    console.log(`[Storage] Contest stats being saved:`, JSON.stringify(analytics.contestStats, null, 2));
+    console.log(`[Storage] Analytics updated: ${username}`);
+
+    // Merge problem stats
+    let mergedProblemStats = student.problemStats;
+    if (analytics.problemStats) {
+      const mergedPlatformStats = {
+        ...student.problemStats?.platformStats,
+        ...analytics.problemStats.platformStats,
+      };
+      mergedProblemStats = {
+        ...analytics.problemStats,
+        platformStats: mergedPlatformStats,
+        total: Object.values(mergedPlatformStats).reduce((sum, val) => sum + (val || 0), 0),
+      };
+    }
+
+    // Merge contest stats
+    let mergedContestStats = student.contestStats;
+    if (analytics.contestStats) {
+      mergedContestStats = {
+        leetcode: analytics.contestStats.leetcode?.totalContests 
+          ? analytics.contestStats.leetcode 
+          : student.contestStats?.leetcode,
+        codechef: analytics.contestStats.codechef?.totalContests 
+          ? analytics.contestStats.codechef 
+          : student.contestStats?.codechef,
+        codeforces: analytics.contestStats.codeforces?.totalContests 
+          ? analytics.contestStats.codeforces 
+          : student.contestStats?.codeforces,
+      };
+    }
+
+    // Merge badges
+    let mergedBadges = student.badges || [];
+    if (analytics.badges) {
+      const existingIds = new Set(mergedBadges.map(b => b.id));
+      const newBadges = analytics.badges.filter(b => !existingIds.has(b.id));
+      mergedBadges = [...mergedBadges, ...newBadges];
+    }
 
     const updatedStudent: Student = {
       ...student,
-      problemStats: analytics.problemStats || student.problemStats,
-      contestStats: analytics.contestStats || student.contestStats,
-      badges: analytics.badges || student.badges,
+      problemStats: mergedProblemStats,
+      contestStats: mergedContestStats,
+      badges: mergedBadges,
     };
 
     this.students.set(username, updatedStudent);
-    
-    console.log(`[Storage] Updated student contest stats:`, JSON.stringify(updatedStudent.contestStats, null, 2));
     
     return updatedStudent;
   }

@@ -15,7 +15,6 @@ export async function scrapeGeeksforGeeks(username: string): Promise<{
     });
 
     const $ = cheerio.load(response.data);
-    console.log(`[GeeksforGeeks] Fetching data for: ${username}`);
 
     let totalSolved = 0;
     
@@ -43,8 +42,6 @@ export async function scrapeGeeksforGeeks(username: string): Promise<{
       });
     }
 
-    console.log(`[GeeksforGeeks] Problems solved: ${totalSolved}`);
-
     return {
       problemStats: {
         total: totalSolved,
@@ -65,7 +62,7 @@ export async function scrapeGeeksforGeeks(username: string): Promise<{
       badges: [],
     };
   } catch (error: any) {
-    console.error(`Error scraping GeeksforGeeks for ${username}:`, error.message);
+    console.error(`[GFG] ${username}: ${error.message}`);
     return {
       problemStats: {
         total: 0,
