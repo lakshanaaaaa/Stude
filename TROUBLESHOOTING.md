@@ -206,3 +206,68 @@ If none of the above works, provide:
 3. Your platform usernames
 4. Screenshot of Edit Profile page
 5. Screenshot of error message
+
+
+## Issue 6: Leaderboard Shows Wrong Total Problems
+
+**Symptoms:**
+- Profile page shows correct total (e.g., 1006 problems)
+- Leaderboard shows incorrect total (e.g., 394 problems)
+- Platform-specific problems are 0 in leaderboard
+
+**Cause:** 
+MongoDB data was corrupted by old merge logic that overwrote existing platform data with 0 when only one platform was scraped.
+
+**Example of Corrupted Data:**
+```javascript
+// What should be in MongoDB:
+problemStats: {
+  total: 1006,
+  platformStats: {
+    LeetCode: 394,
+    CodeChef: 595,
+    CodeForces: 17
+  }
+}
+
+// What's actually in MongoDB (corrupted):
+problemStats: {
+  total: 394,  // ❌ Wrong!
+  platformStats: {
+    LeetCode: 394,
+    CodeChef: 0,      // ❌ Lost data!
+    CodeForces: 0     // ❌ Lost data!
+  }
+}
+```
+
+**Solution:**
+The merge logic has been fixed, but you need to re-scrape to fix corrupted data:
+
+1. **Manual Fix (Recommended for Testing):**
+   - Go to your profile page
+   - Click "Refresh Stats" button
+   - Wait for all platforms to be scraped
+   - Verify leaderboard now shows correct total
+
+2. **Bulk Fix (For All Students):**
+   ```bash
+   # Get your admin token from browser localStorage
+   # Then run:
+   node scripts/bulk-rescrape.js YOUR_ADMIN_TOKEN
+   ```
+
+3. **Verify Fix:**
+   - Check leaderboard shows correct totals
+   - Check profile page matches leaderboard
+   - Verify all platform stats are non-zero
+
+**Prevention:**
+The fix ensures:
+- ✅ Scraping one platform won't overwrite others with 0
+- ✅ Values are merged using Math.max() to keep highest value
+- ✅ Leaderboard auto-refreshes after each scrape
+- ✅ Data integrity maintained across partial scrapes
+
+**Technical Details:**
+See `LEADERBOARD_FIX_SUMMARY.md` for complete technical analysis and fix details.
