@@ -13,6 +13,11 @@ import {
   getScrapeProgress 
 } from "./services/reportService";
 import { adminStorage } from "./storage/adminMongodb";
+import {
+  getOverallLeaderboard,
+  getPlatformLeaderboard,
+  computeAndStoreLeaderboards,
+} from "./services/leaderboardService";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
 
@@ -128,8 +133,16 @@ export async function registerRoutes(
 
   app.get("/api/students", authMiddleware(), async (req: Request, res: Response) => {
     try {
-      const students = await storage.getAllStudents();
-      return res.json(students);
+      const [students, users] = await Promise.all([
+        storage.getAllStudents(),
+        storage.getAllUsers(),
+      ]);
+
+      // Only include students that still have a corresponding user account
+      const validUsernames = new Set(users.map((u) => u.username));
+      const filteredStudents = students.filter((s) => validUsernames.has(s.username));
+
+      return res.json(filteredStudents);
     } catch (error) {
       console.error("Get students error:", error);
       return res.status(500).json({ error: "Internal server error" });
@@ -297,6 +310,11 @@ export async function registerRoutes(
 
       console.log(`[Scrape] ${username} done: ${scrapedData.problemStats.total} problems`);
 
+      // Refresh leaderboard in background after scraping
+      computeAndStoreLeaderboards().catch(err => {
+        console.error("[Scrape] Failed to refresh leaderboard:", err);
+      });
+
       return res.json({
         success: true,
         student: updatedStudent,
@@ -307,6 +325,74 @@ export async function registerRoutes(
       return res.status(500).json({ error: error.message || "Failed to scrape student data" });
     }
   });
+
+  // Leaderboard APIs
+  app.get(
+    "/api/leaderboard/overall",
+    authMiddleware(),
+    async (_req: Request, res: Response) => {
+      try {
+        const data = await getOverallLeaderboard(50);
+        if (!data) {
+          return res.json({ generatedAt: null, entries: [] });
+        }
+        return res.json(data);
+      } catch (err: any) {
+        console.error("[Leaderboard] Failed to fetch overall leaderboard:", err);
+        return res.status(500).json({ error: "Failed to fetch leaderboard" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/leaderboard/platform/:platform",
+    authMiddleware(),
+    async (req: Request, res: Response) => {
+      try {
+        const rawPlatform = req.params.platform;
+        const normalized =
+          rawPlatform === "leetcode"
+            ? "LeetCode"
+            : rawPlatform === "codechef"
+            ? "CodeChef"
+            : rawPlatform === "codeforces"
+            ? "CodeForces"
+            : rawPlatform;
+
+        if (!["LeetCode", "CodeChef", "CodeForces"].includes(normalized)) {
+          return res.status(400).json({ error: "Invalid platform" });
+        }
+
+        // Type assertion is safe due to the check above
+        const data = await getPlatformLeaderboard(
+          normalized as "LeetCode" | "CodeChef" | "CodeForces",
+          50
+        );
+        if (!data) {
+          return res.json({ generatedAt: null, entries: [] });
+        }
+        return res.json(data);
+      } catch (err: any) {
+        console.error("[Leaderboard] Failed to fetch platform leaderboard:", err);
+        return res.status(500).json({ error: "Failed to fetch leaderboard" });
+      }
+    }
+  );
+
+  // Manually refresh leaderboard (admin only)
+  app.post(
+    "/api/admin/leaderboard/refresh",
+    authMiddleware(["admin"]),
+    async (_req: Request, res: Response) => {
+      try {
+        await computeAndStoreLeaderboards();
+        return res.json({ message: "Leaderboard refreshed successfully" });
+      } catch (err: any) {
+        console.error("[Leaderboard] Failed to refresh:", err);
+        return res.status(500).json({ error: "Failed to refresh leaderboard" });
+      }
+    }
+  );
 
   // Admin routes
   app.post("/api/auth/check-username", async (req: Request, res: Response) => {
