@@ -186,18 +186,24 @@ export function ProblemStatsCard({ stats, contestStats }: ProblemStatsCardProps)
           <CardTitle className="text-lg">Platform-wise Stats</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Object.entries(stats.platformStats || {}).map(([platform, count]) => (
-              <div 
-                key={platform} 
-                className="text-center p-3 rounded-lg bg-muted/50"
-                data-testid={`text-platform-${platform.toLowerCase()}`}
-              >
-                <p className="text-sm text-muted-foreground truncate">{platform}</p>
-                <p className="text-xl font-bold mt-1">{count || 0}</p>
-              </div>
-            ))}
-          </div>
+          {Object.keys(stats.platformStats || {}).length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              No platform data available. Click "Refresh Stats" to fetch data.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {Object.entries(stats.platformStats || {}).map(([platform, count]) => (
+                <div 
+                  key={platform} 
+                  className="text-center p-3 rounded-lg bg-muted/50"
+                  data-testid={`text-platform-${platform.toLowerCase()}`}
+                >
+                  <p className="text-sm text-muted-foreground truncate">{platform}</p>
+                  <p className="text-xl font-bold mt-1">{count || 0}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
