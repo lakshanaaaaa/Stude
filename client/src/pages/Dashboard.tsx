@@ -6,7 +6,8 @@ import { TopCoderCard } from "@/components/TopCoderCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Users, Filter } from "lucide-react";
+import { Search, Users, Filter, Trophy, Star } from "lucide-react";
 import type { Student } from "@shared/schema";
 
 const departments = ["All", "CSE", "CSBS", "AI&DS", "CSE(AI&ML)"];
@@ -30,12 +31,157 @@ function getTopCoder(students: Student[]): Student | undefined {
   });
 }
 
+interface OverallLeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  name: string;
+  dept: string;
+  totalSolved: number;
+  highestRatingValue: number;
+  highestRatingPlatform: "LeetCode" | "CodeChef" | "CodeForces" | null;
+}
+
+interface PlatformLeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  name: string;
+  dept: string;
+  platform: "LeetCode" | "CodeChef" | "CodeForces";
+  problemsSolved: number;
+  highestRating: number;
+}
+
+type LeaderboardTableProps =
+  | {
+      type: "overall";
+      overall: OverallLeaderboardEntry[];
+      platformEntries?: never;
+      platform?: never;
+    }
+  | {
+      type: "platform";
+      overall?: never;
+      platformEntries: PlatformLeaderboardEntry[];
+      platform: "LeetCode" | "CodeChef" | "CodeForces";
+    };
+
+function LeaderboardTable(props: LeaderboardTableProps) {
+  const rows =
+    props.type === "overall" ? props.overall : props.platformEntries;
+
+  if (!rows || rows.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground text-center py-6">
+        Leaderboard will appear here once stats are available.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {rows.slice(0, 10).map((row) => (
+        <div
+          key={row.userId}
+          className="flex items-center gap-4 p-3 rounded-lg border bg-card/40"
+        >
+          <div
+            className={
+              "w-10 h-10 flex items-center justify-center rounded-full font-semibold " +
+              (row.rank === 1
+                ? "bg-yellow-500/10 text-yellow-400"
+                : row.rank === 2
+                ? "bg-gray-400/10 text-gray-300"
+                : row.rank === 3
+                ? "bg-amber-700/10 text-amber-400"
+                : "bg-primary/10 text-primary")
+            }
+          >
+            #{row.rank}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold truncate">
+              {"name" in row ? row.name : row.username}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              @{row.username} • {row.dept}
+            </p>
+          </div>
+          {props.type === "overall" ? (
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-lg font-bold">{row.totalSolved}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  total solved
+                </p>
+              </div>
+              <div className="text-right text-xs">
+                <div className="flex items-center justify-end gap-1">
+                  <Star className="w-3 h-3 text-yellow-500" />
+                  <span className="font-semibold">
+                    {row.highestRatingValue || 0}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {row.highestRatingPlatform || "No rating"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-lg font-bold">{row.highestRating || 0}</p>
+                <p className="text-[11px] text-muted-foreground">rating</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold">
+                  {row.problemsSolved || 0}
+                </p>
+                <p className="text-[11px] text-muted-foreground">solved</p>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
 
   const { data: students, isLoading } = useQuery<Student[]>({
     queryKey: ["/api/students"],
+  });
+
+  const { data: overallLeaderboard } = useQuery<{
+    generatedAt: string | null;
+    entries: OverallLeaderboardEntry[];
+  }>({
+    queryKey: ["/api/leaderboard/overall"],
+  });
+
+  const { data: cfLeaderboard } = useQuery<{
+    generatedAt: string | null;
+    entries: PlatformLeaderboardEntry[];
+  }>({
+    queryKey: ["/api/leaderboard/platform/CodeForces"],
+  });
+
+  const { data: ccLeaderboard } = useQuery<{
+    generatedAt: string | null;
+    entries: PlatformLeaderboardEntry[];
+  }>({
+    queryKey: ["/api/leaderboard/platform/CodeChef"],
+  });
+
+  const { data: lcLeaderboard } = useQuery<{
+    generatedAt: string | null;
+    entries: PlatformLeaderboardEntry[];
+  }>({
+    queryKey: ["/api/leaderboard/platform/LeetCode"],
   });
 
   const topCoder = useMemo(() => {
@@ -90,7 +236,64 @@ export default function Dashboard() {
               </section>
             )}
 
-            <section>
+            <section className="flex flex-col gap-6">
+              {/* Leaderboard */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Trophy className="w-5 h-5 text-yellow-500" />
+                      Leaderboard
+                    </CardTitle>
+                    {overallLeaderboard?.generatedAt && (
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Last updated{" "}
+                        {new Date(
+                          overallLeaderboard.generatedAt
+                        ).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="overall">
+                    <TabsList className="grid grid-cols-4 mb-4">
+                      <TabsTrigger value="overall">Overall</TabsTrigger>
+                      <TabsTrigger value="codeforces">Codeforces</TabsTrigger>
+                      <TabsTrigger value="codechef">CodeChef</TabsTrigger>
+                      <TabsTrigger value="leetcode">LeetCode</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="overall" className="mt-0">
+                      <LeaderboardTable
+                        type="overall"
+                        overall={overallLeaderboard?.entries || []}
+                      />
+                    </TabsContent>
+                    <TabsContent value="codeforces" className="mt-0">
+                      <LeaderboardTable
+                        type="platform"
+                        platform="CodeForces"
+                        platformEntries={cfLeaderboard?.entries || []}
+                      />
+                    </TabsContent>
+                    <TabsContent value="codechef" className="mt-0">
+                      <LeaderboardTable
+                        type="platform"
+                        platform="CodeChef"
+                        platformEntries={ccLeaderboard?.entries || []}
+                      />
+                    </TabsContent>
+                    <TabsContent value="leetcode" className="mt-0">
+                      <LeaderboardTable
+                        type="platform"
+                        platform="LeetCode"
+                        platformEntries={lcLeaderboard?.entries || []}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
