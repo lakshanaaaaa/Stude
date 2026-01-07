@@ -42,13 +42,35 @@ export class MongoStorage implements IStorage {
   }
 
   async getAllStudents(): Promise<Student[]> {
-    const students = await StudentModel.find({}).lean();
-    return students as Student[];
+    const students = await StudentModel.find({});
+    return students.map(s => {
+      const studentObj = s.toObject();
+      
+      // Convert Map to plain object for platformStats
+      if (studentObj.problemStats?.platformStats instanceof Map) {
+        studentObj.problemStats.platformStats = Object.fromEntries(
+          studentObj.problemStats.platformStats
+        );
+      }
+      
+      return studentObj as Student;
+    });
   }
 
   async getStudentByUsername(username: string): Promise<Student | undefined> {
-    const student = await StudentModel.findOne({ username }).lean();
-    return student ? (student as Student) : undefined;
+    const student = await StudentModel.findOne({ username });
+    if (!student) return undefined;
+    
+    const studentObj = student.toObject();
+    
+    // Convert Map to plain object for platformStats
+    if (studentObj.problemStats?.platformStats instanceof Map) {
+      studentObj.problemStats.platformStats = Object.fromEntries(
+        studentObj.problemStats.platformStats
+      );
+    }
+    
+    return studentObj as Student;
   }
 
   async createStudent(insertStudent: InsertStudent): Promise<Student> {
@@ -59,16 +81,38 @@ export class MongoStorage implements IStorage {
       ...insertStudent,
     });
     await student.save();
-    return student.toObject() as Student;
+    
+    const studentObj = student.toObject();
+    
+    // Convert Map to plain object for platformStats
+    if (studentObj.problemStats?.platformStats instanceof Map) {
+      studentObj.problemStats.platformStats = Object.fromEntries(
+        studentObj.problemStats.platformStats
+      );
+    }
+    
+    return studentObj as Student;
   }
 
   async updateStudent(username: string, data: UpdateStudent): Promise<Student | undefined> {
     const student = await StudentModel.findOneAndUpdate(
       { username },
       { $set: data },
-      { new: true, lean: true }
+      { new: true }
     );
-    return student ? (student as Student) : undefined;
+    
+    if (!student) return undefined;
+    
+    const studentObj = student.toObject();
+    
+    // Convert Map to plain object for platformStats
+    if (studentObj.problemStats?.platformStats instanceof Map) {
+      studentObj.problemStats.platformStats = Object.fromEntries(
+        studentObj.problemStats.platformStats
+      );
+    }
+    
+    return studentObj as Student;
   }
 
   async updateStudentAnalytics(
@@ -90,16 +134,40 @@ export class MongoStorage implements IStorage {
 
     if (analytics.problemStats) {
       // Merge platform stats instead of replacing
-      if (existingStudent?.problemStats?.platformStats) {
-        const mergedPlatformStats = {
-          ...existingStudent.problemStats.platformStats,
-          ...analytics.problemStats.platformStats,
-        };
+      const existingPlatformStats = existingStudent?.problemStats?.platformStats;
+      if (existingPlatformStats) {
+        // Convert Map to plain object if needed
+        let existingStatsObj: Record<string, number> = {};
+        if (existingPlatformStats instanceof Map) {
+          existingPlatformStats.forEach((value, key) => {
+            existingStatsObj[key] = value;
+          });
+        } else {
+          existingStatsObj = existingPlatformStats as Record<string, number>;
+        }
+        
+        // Merge platform stats - only update if new value is greater than 0
+        // This prevents overwriting existing data with 0 when only some platforms are scraped
+        const mergedPlatformStats: Record<string, number> = { ...existingStatsObj };
+        const newPlatformStats = analytics.problemStats.platformStats || {};
+        
+        for (const platform of Object.keys(newPlatformStats)) {
+          const newValue = (newPlatformStats as Record<string, number>)[platform] || 0;
+          const existingValue = mergedPlatformStats[platform] || 0;
+          // Keep the higher value (in case of re-scrape with updated data)
+          // or use new value if it's greater than 0
+          if (newValue > 0) {
+            mergedPlatformStats[platform] = Math.max(newValue, existingValue);
+          }
+        }
+        
+        // Recalculate total from merged platform stats
+        const total = Object.values(mergedPlatformStats).reduce((sum: number, val: any) => sum + (val || 0), 0);
+        
         updateData.problemStats = {
           ...analytics.problemStats,
           platformStats: mergedPlatformStats,
-          // Recalculate total from merged platform stats
-          total: Object.values(mergedPlatformStats).reduce((sum: number, val: any) => sum + (val || 0), 0),
+          total,
         };
       } else {
         updateData.problemStats = analytics.problemStats;
@@ -139,10 +207,21 @@ export class MongoStorage implements IStorage {
     const student = await StudentModel.findOneAndUpdate(
       { username },
       { $set: updateData },
-      { new: true, lean: true }
+      { new: true }
     );
     
-    return student ? (student as Student) : undefined;
+    if (!student) return undefined;
+    
+    const studentObj = student.toObject();
+    
+    // Convert Map to plain object for platformStats
+    if (studentObj.problemStats?.platformStats instanceof Map) {
+      studentObj.problemStats.platformStats = Object.fromEntries(
+        studentObj.problemStats.platformStats
+      );
+    }
+    
+    return studentObj as Student;
   }
 
   async getAllUsers(): Promise<Omit<User, "password">[]> {
