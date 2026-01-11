@@ -5,6 +5,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { connectMongoDB } from "./db/mongodb";
 import { initializeStorage } from "./storage";
+import { computeAndStoreLeaderboards } from "./services/leaderboardService";
 import passport from "passport";
 import { configurePassport } from "./passport";
 
@@ -83,6 +84,20 @@ app.use((req, res, next) => {
   }
 
   await registerRoutes(httpServer, app);
+
+  // Start periodic leaderboard computation (every 30 minutes)
+  // Runs only in server process connected to main MongoDB (MONGODB_URI)
+  const LEADERBOARD_INTERVAL_MS = 30 * 60 * 1000;
+  try {
+    // Initial computation (non-blocking)
+    computeAndStoreLeaderboards();
+
+    setInterval(() => {
+      computeAndStoreLeaderboards();
+    }, LEADERBOARD_INTERVAL_MS);
+  } catch (err) {
+    console.error("[Leaderboard] Failed to start scheduler:", err);
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
