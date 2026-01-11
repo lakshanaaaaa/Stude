@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NavigationBar } from "@/components/NavigationBar";
 import { StudentCard } from "@/components/StudentCard";
-import { TopCoderCard } from "@/components/TopCoderCard";
+import { TopperOfTheWeekCard } from "@/components/TopperOfTheWeekCard";
+import { WeeklyLeaderboard } from "@/components/WeeklyLeaderboard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,17 +20,6 @@ import { Search, Users, Filter, Trophy, Star } from "lucide-react";
 import type { Student } from "@shared/schema";
 
 const departments = ["All", "CSE", "CSBS", "AI&DS", "CSE(AI&ML)"];
-
-// Helper function to get top coder based on actual problem stats
-function getTopCoder(students: Student[]): Student | undefined {
-  if (!students || students.length === 0) return undefined;
-  
-  return students.reduce((top, current) => {
-    const topTotal = top.problemStats?.total || 0;
-    const currentTotal = current.problemStats?.total || 0;
-    return currentTotal > topTotal ? current : top;
-  });
-}
 
 interface OverallLeaderboardEntry {
   rank: number;
@@ -184,11 +174,6 @@ export default function Dashboard() {
     queryKey: ["/api/leaderboard/platform/LeetCode"],
   });
 
-  const topCoder = useMemo(() => {
-    if (!students || students.length === 0) return null;
-    return getTopCoder(students);
-  }, [students]);
-
   const filteredStudents = useMemo(() => {
     if (!students) return [];
     
@@ -223,18 +208,9 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {topCoder && topCoder.problemStats && topCoder.contestStats && (
-              <section>
-                <TopCoderCard 
-                  student={topCoder} 
-                  analytics={{
-                    problemStats: topCoder.problemStats,
-                    contestStats: topCoder.contestStats,
-                    badges: topCoder.badges || [],
-                  }} 
-                />
-              </section>
-            )}
+            <section>
+              <TopperOfTheWeekCard />
+            </section>
 
             <section className="flex flex-col gap-6">
               {/* Leaderboard */}
@@ -257,8 +233,9 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="overall">
-                    <TabsList className="grid grid-cols-4 mb-4">
+                    <TabsList className="grid grid-cols-5 mb-4">
                       <TabsTrigger value="overall">Overall</TabsTrigger>
+                      <TabsTrigger value="weekly">Weekly</TabsTrigger>
                       <TabsTrigger value="codeforces">Codeforces</TabsTrigger>
                       <TabsTrigger value="codechef">CodeChef</TabsTrigger>
                       <TabsTrigger value="leetcode">LeetCode</TabsTrigger>
@@ -268,6 +245,9 @@ export default function Dashboard() {
                         type="overall"
                         overall={overallLeaderboard?.entries || []}
                       />
+                    </TabsContent>
+                    <TabsContent value="weekly" className="mt-0">
+                      <WeeklyLeaderboard />
                     </TabsContent>
                     <TabsContent value="codeforces" className="mt-0">
                       <LeaderboardTable
