@@ -18,6 +18,12 @@ import {
   getPlatformLeaderboard,
   computeAndStoreLeaderboards,
 } from "./services/leaderboardService";
+import {
+  getCachedTopper,
+  getCachedLeaderboard,
+  clearTopperCache,
+} from "./services/topperService";
+import { createDailySnapshot } from "./services/snapshotService";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
 
@@ -394,6 +400,22 @@ export async function registerRoutes(
     }
   );
 
+  // Improvement Analytics API
+  app.get(
+    "/api/analytics/improvement",
+    authMiddleware(),
+    async (_req: Request, res: Response) => {
+      try {
+        const { getCachedImprovementAnalytics } = await import("./services/improvementAnalyticsService");
+        const analytics = await getCachedImprovementAnalytics();
+        return res.json(analytics);
+      } catch (err: any) {
+        console.error("[Analytics] Failed to fetch improvement analytics:", err);
+        return res.status(500).json({ error: "Failed to fetch improvement analytics" });
+      }
+    }
+  );
+
   // Admin routes
   app.post("/api/auth/check-username", async (req: Request, res: Response) => {
     try {
@@ -732,6 +754,87 @@ export async function registerRoutes(
     }
   });
 
+  // Faculty Analytics - Improvement and Contest Participation
+  app.get("/api/faculty/analytics", authMiddleware(["faculty", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const { getCachedFacultyAnalytics } = await import("./services/facultyAnalyticsService");
+      
+      const user = await storage.getUserByUsername(req.user!.username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get department from user or query param (admin can view any department)
+      const department = req.user!.role === "admin" 
+        ? (req.query.department as string || user.department)
+        : user.department;
+
+      if (!department) {
+        return res.status(400).json({ error: "No department assigned to faculty" });
+      }
+
+      const analytics = await getCachedFacultyAnalytics(department);
+      return res.json(analytics);
+    } catch (error: any) {
+      console.error("[FacultyAnalytics] Failed to fetch analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch faculty analytics" });
+    }
+  });
+
+  // Bulk Refresh Department Stats (Faculty & Admin)
+  app.post("/api/faculty/refresh-all", authMiddleware(["faculty", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const { refreshDepartmentStats } = await import("./services/bulkRefreshService");
+      
+      const user = await storage.getUserByUsername(req.user!.username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get department from user or request body (admin can refresh any department)
+      const department = req.user!.role === "admin" 
+        ? (req.body.department || user.department)
+        : user.department;
+
+      if (!department) {
+        return res.status(400).json({ error: "No department assigned" });
+      }
+
+      const progress = await refreshDepartmentStats(department);
+      return res.json({
+        message: `Started refreshing stats for ${department} department`,
+        progress,
+      });
+    } catch (error: any) {
+      console.error("[BulkRefresh] Failed to start refresh:", error);
+      return res.status(500).json({ error: error.message || "Failed to start bulk refresh" });
+    }
+  });
+
+  // Get Bulk Refresh Progress
+  app.get("/api/faculty/refresh-progress", authMiddleware(["faculty", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const { getBulkRefreshProgress } = await import("./services/bulkRefreshService");
+      const progress = getBulkRefreshProgress();
+      return res.json(progress);
+    } catch (error: any) {
+      console.error("[BulkRefresh] Failed to get progress:", error);
+      return res.status(500).json({ error: "Failed to get refresh progress" });
+    }
+  });
+
+  // Cancel Bulk Refresh
+  app.post("/api/faculty/refresh-cancel", authMiddleware(["faculty", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const { cancelBulkRefresh } = await import("./services/bulkRefreshService");
+      cancelBulkRefresh();
+      return res.json({ message: "Bulk refresh cancelled" });
+    } catch (error: any) {
+      console.error("[BulkRefresh] Failed to cancel refresh:", error);
+      return res.status(500).json({ error: "Failed to cancel refresh" });
+    }
+  });
+
   app.patch("/api/admin/users/:id/department", authMiddleware(["admin"]), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -910,6 +1013,79 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete snapshot error:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ============ TOPPER OF THE WEEK ROUTES ============
+
+  // Get Topper of the Week
+  app.get("/api/topper-of-the-week", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const topper = await getCachedTopper();
+      
+      if (!topper) {
+        return res.json({
+          message: "No eligible students for Topper of the Week yet. Keep solving problems!",
+          topper: null
+        });
+      }
+
+      return res.json({ topper });
+    } catch (error: any) {
+      console.error("[Topper] Failed to get Topper of the Week:", error);
+      return res.status(500).json({ error: "Failed to fetch Topper of the Week" });
+    }
+  });
+
+  // Get Weekly Leaderboard (top 10)
+  app.get("/api/weekly-leaderboard", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const leaderboard = await getCachedLeaderboard(limit);
+      
+      return res.json({ 
+        leaderboard,
+        count: leaderboard.length 
+      });
+    } catch (error: any) {
+      console.error("[Topper] Failed to get weekly leaderboard:", error);
+      return res.status(500).json({ error: "Failed to fetch weekly leaderboard" });
+    }
+  });
+
+  // Manual refresh of Topper calculations (admin only)
+  app.post("/api/admin/topper/refresh", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      clearTopperCache();
+      
+      // Trigger recalculation by fetching fresh data
+      const topper = await getCachedTopper();
+      const leaderboard = await getCachedLeaderboard(10);
+      
+      return res.json({ 
+        message: "Topper calculations refreshed successfully",
+        topper,
+        leaderboardCount: leaderboard.length
+      });
+    } catch (error: any) {
+      console.error("[Topper] Failed to refresh topper:", error);
+      return res.status(500).json({ error: "Failed to refresh topper calculations" });
+    }
+  });
+
+  // Manual snapshot creation (admin only)
+  app.post("/api/admin/snapshot/create", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const result = await createDailySnapshot();
+      
+      return res.json({
+        message: "Daily snapshot created successfully",
+        snapshotsCreated: result.snapshotsCreated,
+        errors: result.errors
+      });
+    } catch (error: any) {
+      console.error("[Snapshot] Failed to create daily snapshot:", error);
+      return res.status(500).json({ error: "Failed to create snapshot" });
     }
   });
 
