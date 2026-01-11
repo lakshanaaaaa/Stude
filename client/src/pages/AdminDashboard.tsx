@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NavigationBar } from "@/components/NavigationBar";
+import { AdminBulkRefreshButton } from "@/components/AdminBulkRefreshButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { AdminReports } from "@/components/AdminReports";
+import { ImprovementAnalyticsCard } from "@/components/ImprovementAnalyticsCard";
 import { 
   Search, 
   Trash2, 
@@ -80,6 +82,20 @@ export default function AdminDashboard() {
 
   const { data: incompleteOnboarding, isLoading: incompleteLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users/incomplete-onboarding"],
+  });
+
+  const { data: improvementAnalytics } = useQuery<{
+    totalUsers: number;
+    improvedUsers: number;
+    notImprovedUsers: number;
+    improvementPercentage: number;
+    platformBreakdown: {
+      leetcode: { improved: number; notImproved: number; total: number };
+      codechef: { improved: number; notImproved: number; total: number };
+      codeforces: { improved: number; notImproved: number; total: number };
+    };
+  }>({
+    queryKey: ["/api/analytics/improvement"],
   });
 
   const updateRoleMutation = useMutation({
@@ -211,14 +227,17 @@ export default function AdminDashboard() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="space-y-8">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
-                <Shield className="w-5 h-5 text-primary-foreground" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
+                  <Shield className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                  <p className="text-muted-foreground">System overview and user management</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                <p className="text-muted-foreground">System overview and user management</p>
-              </div>
+              <AdminBulkRefreshButton />
             </div>
           </div>
 
@@ -748,7 +767,14 @@ export default function AdminDashboard() {
                     )}
                   </CardContent>
                 </Card>
+              </div>
 
+              {/* Contest Rating Improvement Analytics */}
+              {improvementAnalytics && (
+                <ImprovementAnalyticsCard analytics={improvementAnalytics} />
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
