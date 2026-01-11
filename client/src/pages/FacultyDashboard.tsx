@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { NavigationBar } from "@/components/NavigationBar";
+import { FacultyAnalyticsCard } from "@/components/FacultyAnalyticsCard";
+import { BulkRefreshButton } from "@/components/BulkRefreshButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
   Loader2, 
@@ -11,7 +14,8 @@ import {
   GraduationCap,
   Trophy,
   Target,
-  BookOpen
+  BookOpen,
+  BarChart3
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Student } from "@shared/schema";
@@ -33,9 +37,32 @@ interface DepartmentStats {
   contestParticipants: number;
 }
 
+interface FacultyAnalytics {
+  department: string;
+  totalStudents: number;
+  improvement: {
+    improved: any[];
+    notImproved: any[];
+    improvedCount: number;
+    notImprovedCount: number;
+    improvementPercentage: number;
+  };
+  contestParticipation: {
+    attendedLast: any[];
+    didNotAttendLast: any[];
+    attendedCount: number;
+    didNotAttendCount: number;
+    participationPercentage: number;
+  };
+}
+
 export default function FacultyDashboard() {
   const { data: stats, isLoading } = useQuery<DepartmentStats>({
     queryKey: ["/api/faculty/department-stats"],
+  });
+
+  const { data: analytics, isLoading: analyticsLoading } = useQuery<FacultyAnalytics>({
+    queryKey: ["/api/faculty/analytics"],
   });
 
   if (isLoading) {
@@ -76,7 +103,28 @@ export default function FacultyDashboard() {
       <NavigationBar />
       
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="space-y-8">
+        <Tabs defaultValue="overview" className="space-y-8">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
+                  <GraduationCap className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">{stats.department} Department</h1>
+                  <p className="text-muted-foreground">Student performance overview</p>
+                </div>
+              </div>
+              <BulkRefreshButton />
+            </div>
+            
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="overview" className="space-y-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
@@ -316,7 +364,27 @@ export default function FacultyDashboard() {
               </CardContent>
             </Card>
           </div>
-        </div>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-8">
+          {analyticsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : analytics ? (
+            <FacultyAnalyticsCard analytics={analytics} />
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-12">
+                  <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground">No analytics data available yet.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
       </main>
     </div>
   );
