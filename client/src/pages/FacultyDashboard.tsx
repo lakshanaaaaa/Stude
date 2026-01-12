@@ -13,7 +13,6 @@ import {
   Code2, 
   GraduationCap,
   Trophy,
-  Target,
   BookOpen,
   BarChart3
 } from "lucide-react";
@@ -96,8 +95,6 @@ export default function FacultyDashboard() {
     );
   }
 
-  const totalProblems = stats.totalProblems;
-
   return (
     <div className="min-h-screen bg-background">
       <NavigationBar />
@@ -125,20 +122,8 @@ export default function FacultyDashboard() {
           </div>
 
           <TabsContent value="overview" className="space-y-8">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
-                <GraduationCap className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">{stats.department} Department</h1>
-                <p className="text-muted-foreground">Student performance overview</p>
-              </div>
-            </div>
-          </div>
-
           {/* Overview Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -162,35 +147,6 @@ export default function FacultyDashboard() {
                   </div>
                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10">
                     <TrendingUp className="w-6 h-6 text-green-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Problems</p>
-                    <p className="text-3xl font-bold">{stats.totalProblems}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Avg: {stats.avgProblems}/student</p>
-                  </div>
-                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-500/10">
-                    <Code2 className="w-6 h-6 text-purple-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Contests</p>
-                    <p className="text-3xl font-bold">{stats.totalContests}</p>
-                  </div>
-                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-orange-500/10">
-                    <Trophy className="w-6 h-6 text-orange-500" />
                   </div>
                 </div>
               </CardContent>
@@ -285,54 +241,6 @@ export default function FacultyDashboard() {
                 ) : (
                   <p className="text-center text-muted-foreground py-8">No data available</p>
                 )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Problem Difficulty Distribution
-                </CardTitle>
-                <CardDescription>Across all students</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    {
-                      label: "Easy",
-                      count: stats.difficultyStats.easy,
-                      color: "bg-green-500",
-                    },
-                    {
-                      label: "Medium",
-                      count: stats.difficultyStats.medium,
-                      color: "bg-yellow-500",
-                    },
-                    {
-                      label: "Hard",
-                      count: stats.difficultyStats.hard,
-                      color: "bg-red-500",
-                    },
-                  ].map(({ label, count, color }) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{label}</span>
-                      <div className="flex items-center gap-3">
-                        <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${color} rounded-full`}
-                            style={{
-                              width: `${totalProblems ? (count / totalProblems) * 100 : 0}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-sm text-muted-foreground w-12 text-right">
-                          {count}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </CardContent>
             </Card>
 
