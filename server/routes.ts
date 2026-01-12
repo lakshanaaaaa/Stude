@@ -575,6 +575,12 @@ export async function registerRoutes(
           return res.status(400).json({ error: "Invalid role" });
         }
         updateData.role = role;
+        
+        // Faculty and admin don't need onboarding (no platform IDs required)
+        // Automatically mark them as onboarded
+        if (role === "faculty" || role === "admin") {
+          updateData.isOnboarded = true;
+        }
       }
       if (username !== undefined) {
         updateData.username = username;
@@ -589,6 +595,7 @@ export async function registerRoutes(
         id: updatedUser.id,
         username: updatedUser.username,
         role: updatedUser.role,
+        isOnboarded: updatedUser.isOnboarded,
       });
     } catch (error) {
       console.error("Update user error:", error);
@@ -866,7 +873,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Only faculty users can be assigned to departments" });
       }
 
-      const updatedUser = await storage.updateUser(id, { department });
+      // Faculty don't need onboarding, ensure they're marked as onboarded
+      const updatedUser = await storage.updateUser(id, { 
+        department,
+        isOnboarded: true 
+      });
       if (!updatedUser) {
         return res.status(500).json({ error: "Failed to update department" });
       }
@@ -876,6 +887,7 @@ export async function registerRoutes(
         username: updatedUser.username,
         role: updatedUser.role,
         department: updatedUser.department,
+        isOnboarded: updatedUser.isOnboarded,
       });
     } catch (error) {
       console.error("Update department error:", error);
