@@ -30,6 +30,9 @@ export function configurePassport() {
             if (!user) {
               // Create new user
               const username = profile.emails?.[0]?.value?.split("@")[0] || `user_${profile.id}`;
+              
+              // Check if email belongs to faculty or admin domain (you can customize this logic)
+              // For now, all new OAuth users are students and need onboarding
               user = await storage.createUser({
                 username,
                 googleId: profile.id,
@@ -37,7 +40,7 @@ export function configurePassport() {
                 name: profile.displayName,
                 avatar: profile.photos?.[0]?.value,
                 role: "student", // Default role for OAuth users
-                isOnboarded: false,
+                isOnboarded: false, // Students need to complete onboarding
               });
             } else {
               // Update existing user with Google ID
