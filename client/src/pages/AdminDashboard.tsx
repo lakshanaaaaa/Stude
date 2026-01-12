@@ -104,6 +104,9 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      // Invalidate faculty dashboard queries since role changes affect faculty view
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/department-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/analytics"] });
       toast({
         title: "Role updated",
         description: "User role has been updated successfully.",
@@ -124,6 +127,9 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      // Invalidate faculty dashboard queries since department changes affect faculty view
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/department-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/analytics"] });
       toast({
         title: "Department updated",
         description: "Faculty department has been updated successfully.",
@@ -146,6 +152,17 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users/incomplete-onboarding"] });
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      // Invalidate faculty dashboard queries
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/department-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/analytics"] });
+      // Invalidate analytics queries
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/improvement"] });
+      // Invalidate leaderboard queries
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard/overall"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard/platform"] });
+      // Invalidate topper queries
+      queryClient.invalidateQueries({ queryKey: ["/api/topper-of-the-week"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/weekly-leaderboard"] });
       toast({
         title: "User deleted",
         description: "User has been deleted successfully.",
@@ -168,6 +185,17 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users/incomplete-onboarding"] });
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      // Invalidate faculty dashboard queries
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/department-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/analytics"] });
+      // Invalidate analytics queries
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/improvement"] });
+      // Invalidate leaderboard queries
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard/overall"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard/platform"] });
+      // Invalidate topper queries
+      queryClient.invalidateQueries({ queryKey: ["/api/topper-of-the-week"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/weekly-leaderboard"] });
       toast({
         title: "Onboarding reset",
         description: "User onboarding has been reset successfully. They will need to choose a new username.",
