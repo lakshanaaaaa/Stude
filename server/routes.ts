@@ -24,6 +24,9 @@ import {
   clearTopperCache,
 } from "./services/topperService";
 import { createDailySnapshot } from "./services/snapshotService";
+import { WeeklySnapshotModel } from "./models/WeeklySnapshot";
+import { clearImprovementCache } from "./services/improvementAnalyticsService";
+import { clearFacultyAnalyticsCache } from "./services/facultyAnalyticsService";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
 
@@ -611,6 +614,10 @@ export async function registerRoutes(
       // Delete associated student record if exists
       if (user.role === "student" && user.username) {
         await storage.deleteStudent(user.username);
+        
+        // Delete all weekly snapshots for this student
+        await WeeklySnapshotModel.deleteMany({ studentId: id });
+        console.log(`[Delete] Removed weekly snapshots for student ${user.username}`);
       }
 
       // Delete user
@@ -618,6 +625,16 @@ export async function registerRoutes(
       if (!success) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // Clear all caches to ensure deleted user doesn't appear anywhere
+      clearTopperCache();
+      clearImprovementCache();
+      clearFacultyAnalyticsCache();
+      
+      // Recompute leaderboards to remove deleted user
+      await computeAndStoreLeaderboards();
+      
+      console.log(`[Delete] Successfully deleted user ${user.username || user.email} and cleared all caches`);
 
       return res.json({ message: "User deleted successfully" });
     } catch (error) {
