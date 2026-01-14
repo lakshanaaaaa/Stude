@@ -27,6 +27,8 @@ import { createDailySnapshot } from "./services/snapshotService";
 import { WeeklySnapshotModel } from "./models/WeeklySnapshot";
 import { clearImprovementCache } from "./services/improvementAnalyticsService";
 import { clearFacultyAnalyticsCache } from "./services/facultyAnalyticsService";
+import { RoleRequestModel } from "./models/RoleRequest";
+import { randomUUID } from "crypto";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
 
@@ -627,6 +629,10 @@ export async function registerRoutes(
         console.log(`[Delete] Removed weekly snapshots for student ${user.username}`);
       }
 
+      // Delete any role requests from this user
+      await RoleRequestModel.deleteMany({ userId: id });
+      console.log(`[Delete] Removed role requests for user ${user.username || user.email}`);
+
       // Delete user
       const success = await storage.deleteUser(id);
       if (!success) {
@@ -699,6 +705,153 @@ export async function registerRoutes(
       return res.json(incompleteUsers);
     } catch (error) {
       console.error("Get incomplete onboarding error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ============ ROLE REQUEST ROUTES ============
+
+  // Submit a role request (for users who want to be faculty/admin)
+  app.post("/api/role-request", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const { requestedRole, department, reason } = req.body;
+      const userId = req.user!.id;
+
+      // Validate requested role
+      if (!["faculty", "admin"].includes(requestedRole)) {
+        return res.status(400).json({ error: "Invalid role. Must be 'faculty' or 'admin'" });
+      }
+
+      // Faculty must provide department
+      if (requestedRole === "faculty" && !department) {
+        return res.status(400).json({ error: "Department is required for faculty role" });
+      }
+
+      // Check if user already has a pending request
+      const existingRequest = await RoleRequestModel.findOne({ 
+        userId, 
+        status: "pending" 
+      });
+      
+      if (existingRequest) {
+        return res.status(400).json({ error: "You already have a pending role request" });
+      }
+
+      // Get user details
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Create role request
+      const requestId = randomUUID();
+      const roleRequest = new RoleRequestModel({
+        _id: requestId,
+        id: requestId,
+        userId,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        requestedRole,
+        department: requestedRole === "faculty" ? department : undefined,
+        reason,
+        status: "pending",
+      });
+
+      await roleRequest.save();
+
+      console.log(`[RoleRequest] New request from ${user.username} for ${requestedRole} role`);
+
+      return res.json({ 
+        message: "Role request submitted successfully. An admin will review your request.",
+        request: roleRequest.toObject()
+      });
+    } catch (error) {
+      console.error("Role request error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get current user's role request status
+  app.get("/api/role-request/status", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      
+      const request = await RoleRequestModel.findOne({ userId }).sort({ createdAt: -1 }).lean();
+      
+      return res.json({ request: request || null });
+    } catch (error) {
+      console.error("Get role request status error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get all pending role requests (admin only)
+  app.get("/api/admin/role-requests", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const status = req.query.status as string || "pending";
+      
+      const requests = await RoleRequestModel.find({ status })
+        .sort({ createdAt: -1 })
+        .lean();
+      
+      return res.json(requests);
+    } catch (error) {
+      console.error("Get role requests error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Approve or reject a role request (admin only)
+  app.patch("/api/admin/role-requests/:id", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { action } = req.body; // "approve" or "reject"
+
+      if (!["approve", "reject"].includes(action)) {
+        return res.status(400).json({ error: "Invalid action. Must be 'approve' or 'reject'" });
+      }
+
+      const roleRequest = await RoleRequestModel.findOne({ id });
+      if (!roleRequest) {
+        return res.status(404).json({ error: "Role request not found" });
+      }
+
+      if (roleRequest.status !== "pending") {
+        return res.status(400).json({ error: "This request has already been processed" });
+      }
+
+      // Update request status
+      roleRequest.status = action === "approve" ? "approved" : "rejected";
+      roleRequest.reviewedBy = req.user!.id;
+      roleRequest.reviewedAt = new Date();
+      await roleRequest.save();
+
+      // If approved, update user role
+      if (action === "approve") {
+        const updateData: Record<string, unknown> = {
+          role: roleRequest.requestedRole,
+          isOnboarded: true, // Faculty/admin don't need onboarding
+        };
+
+        // Add department for faculty
+        if (roleRequest.requestedRole === "faculty" && roleRequest.department) {
+          updateData.department = roleRequest.department;
+        }
+
+        await storage.updateUser(roleRequest.userId, updateData);
+        
+        console.log(`[RoleRequest] Approved ${roleRequest.username} as ${roleRequest.requestedRole}`);
+      } else {
+        console.log(`[RoleRequest] Rejected ${roleRequest.username}'s request for ${roleRequest.requestedRole}`);
+      }
+
+      return res.json({ 
+        message: `Role request ${action}d successfully`,
+        request: roleRequest.toObject()
+      });
+    } catch (error) {
+      console.error("Process role request error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   });
