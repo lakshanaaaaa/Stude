@@ -98,6 +98,22 @@ export default function AdminDashboard() {
     queryKey: ["/api/analytics/improvement"],
   });
 
+  // Role requests query
+  const { data: roleRequests, isLoading: roleRequestsLoading } = useQuery<{
+    id: string;
+    userId: string;
+    username: string;
+    email: string;
+    name: string;
+    requestedRole: "faculty" | "admin";
+    department?: string;
+    reason?: string;
+    status: "pending" | "approved" | "rejected";
+    createdAt: string;
+  }[]>({
+    queryKey: ["/api/admin/role-requests"],
+  });
+
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
       return await apiRequest("PATCH", `/api/admin/users/${userId}`, { role });
@@ -152,6 +168,8 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users/incomplete-onboarding"] });
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      // Invalidate role requests
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/role-requests"] });
       // Invalidate faculty dashboard queries
       queryClient.invalidateQueries({ queryKey: ["/api/faculty/department-stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/faculty/analytics"] });
@@ -205,6 +223,32 @@ export default function AdminDashboard() {
       toast({
         title: "Reset failed",
         description: error.message || "Failed to reset onboarding.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Role request approval/rejection mutation
+  const processRoleRequestMutation = useMutation({
+    mutationFn: async ({ requestId, action }: { requestId: string; action: "approve" | "reject" }) => {
+      return await apiRequest("PATCH", `/api/admin/role-requests/${requestId}`, { action });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/role-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/department-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/analytics"] });
+      toast({
+        title: variables.action === "approve" ? "Request approved" : "Request rejected",
+        description: variables.action === "approve" 
+          ? "User role has been updated successfully." 
+          : "Role request has been rejected.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Action failed",
+        description: error.message || "Failed to process role request.",
         variant: "destructive",
       });
     },
@@ -333,6 +377,14 @@ export default function AdminDashboard() {
           <Tabs defaultValue="users" className="space-y-6">
             <TabsList>
               <TabsTrigger value="users">User Management</TabsTrigger>
+              <TabsTrigger value="role-requests" className="relative">
+                Role Requests
+                {roleRequests && roleRequests.length > 0 && (
+                  <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
+                    {roleRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="incomplete" className="relative">
                 Incomplete Onboarding
                 {incompleteOnboarding && incompleteOnboarding.length > 0 && (
@@ -588,6 +640,95 @@ export default function AdminDashboard() {
                       <div className="text-sm text-muted-foreground">Students</div>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Role Requests Tab */}
+            <TabsContent value="role-requests" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCog className="w-5 h-5" />
+                    Pending Role Requests
+                  </CardTitle>
+                  <CardDescription>
+                    Review and approve/reject role change requests from users
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {roleRequestsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : roleRequests && roleRequests.length > 0 ? (
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Requested Role</TableHead>
+                            <TableHead>Department</TableHead>
+                            <TableHead>Reason</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {roleRequests.map((request) => (
+                            <TableRow key={request.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{request.name || request.username}</p>
+                                  <p className="text-sm text-muted-foreground">{request.email}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={request.requestedRole === "admin" ? "destructive" : "default"}>
+                                  {request.requestedRole}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{request.department || "-"}</TableCell>
+                              <TableCell className="max-w-xs truncate">{request.reason || "-"}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => processRoleRequestMutation.mutate({ 
+                                      requestId: request.id, 
+                                      action: "approve" 
+                                    })}
+                                    disabled={processRoleRequestMutation.isPending}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => processRoleRequestMutation.mutate({ 
+                                      requestId: request.id, 
+                                      action: "reject" 
+                                    })}
+                                    disabled={processRoleRequestMutation.isPending}
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <UserCog className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                      <p className="text-muted-foreground">
+                        No pending role requests
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
