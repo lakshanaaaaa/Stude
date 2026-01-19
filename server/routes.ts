@@ -446,15 +446,18 @@ export async function registerRoutes(
     try {
       const { username, department, leetcode, codeforces, codechef } = req.body;
       const currentUsername = req.user!.username;
+      const userId = req.user!.id;
 
-      const user = await storage.getUserByUsername(currentUsername);
+      // Use user ID instead of username for lookup to avoid issues with temporary usernames
+      const user = await storage.getUser(userId);
       if (!user) {
+        console.error("User not found with ID:", userId);
         return res.status(404).json({ error: "User not found" });
       }
 
       // Check if user is already onboarded
       if (user.isOnboarded) {
-        const existingStudent = await storage.getStudentByUsername(currentUsername);
+        const existingStudent = await storage.getStudentByUsername(user.username);
         return res.json({ 
           success: true, 
           student: existingStudent,
@@ -469,32 +472,41 @@ export async function registerRoutes(
 
       // Validate required fields
       if (!username || !department) {
+        console.error("Missing required fields:", { username, department });
         return res.status(400).json({ error: "Username and department are required" });
       }
 
       if (!leetcode && !codeforces && !codechef) {
+        console.error("No coding platform accounts provided");
         return res.status(400).json({ error: "At least one coding platform account is required" });
       }
 
       // Check if new username is available (if different from current)
-      if (username !== currentUsername) {
+      if (username !== user.username) {
         const existingUser = await storage.getUserByUsername(username);
         if (existingUser) {
+          console.error("Username already taken:", username);
           return res.status(400).json({ error: "Username is already taken" });
         }
       }
 
-      // Check if student already exists
-      const existingStudent = await storage.getStudentByUsername(currentUsername);
+      // Check if student already exists with the current username
+      const existingStudent = await storage.getStudentByUsername(user.username);
       if (existingStudent) {
+        console.log("Student already exists, updating user:", user.id);
         const updatedUser = await storage.updateUser(user.id, { 
           isOnboarded: true,
           username: username 
         });
 
+        if (!updatedUser) {
+          console.error("Failed to update user:", user.id);
+          return res.status(500).json({ error: "Failed to update user" });
+        }
+
         // Generate new token with updated username
         const newToken = jwt.sign(
-          { id: updatedUser!.id, username: updatedUser!.username, role: updatedUser!.role },
+          { id: updatedUser.id, username: updatedUser.username, role: updatedUser.role },
           JWT_SECRET,
           { expiresIn: "7d" }
         );
@@ -504,10 +516,10 @@ export async function registerRoutes(
           student: existingStudent,
           token: newToken,
           user: {
-            id: updatedUser!.id,
-            username: updatedUser!.username,
-            role: updatedUser!.role,
-            isOnboarded: updatedUser!.isOnboarded,
+            id: updatedUser.id,
+            username: updatedUser.username,
+            role: updatedUser.role,
+            isOnboarded: updatedUser.isOnboarded,
           }
         });
       }
@@ -517,6 +529,7 @@ export async function registerRoutes(
       if (codeforces) mainAccounts.push({ platform: "CodeForces" as const, username: codeforces });
       if (codechef) mainAccounts.push({ platform: "CodeChef" as const, username: codechef });
 
+      console.log("Creating new student:", { username, department, mainAccounts });
       const student = await storage.createStudent({
         name: user.name || username,
         username: username,
@@ -527,31 +540,39 @@ export async function registerRoutes(
         subAccounts: [],
       });
 
+      console.log("Updating user after student creation:", user.id);
       const updatedUser = await storage.updateUser(user.id, { 
         isOnboarded: true,
         username: username 
       });
 
+      if (!updatedUser) {
+        console.error("Failed to update user after student creation:", user.id);
+        return res.status(500).json({ error: "Failed to update user" });
+      }
+
       // Generate new token with updated username
       const newToken = jwt.sign(
-        { id: updatedUser!.id, username: updatedUser!.username, role: updatedUser!.role },
+        { id: updatedUser.id, username: updatedUser.username, role: updatedUser.role },
         JWT_SECRET,
         { expiresIn: "7d" }
       );
 
+      console.log("Onboarding successful for user:", updatedUser.username);
       return res.json({ 
         success: true, 
         student,
         token: newToken,
         user: {
-          id: updatedUser!.id,
-          username: updatedUser!.username,
-          role: updatedUser!.role,
-          isOnboarded: updatedUser!.isOnboarded,
+          id: updatedUser.id,
+          username: updatedUser.username,
+          role: updatedUser.role,
+          isOnboarded: updatedUser.isOnboarded,
         }
       });
     } catch (error) {
       console.error("Onboarding error:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
       return res.status(500).json({ error: "Internal server error" });
     }
   });
