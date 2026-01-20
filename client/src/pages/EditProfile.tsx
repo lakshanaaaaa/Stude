@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavigationBar } from "@/components/NavigationBar";
 import { EditProfileForm } from "@/components/EditProfileForm";
+import { ProfilePictureUpload } from "@/components/ProfilePictureUpload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -131,6 +132,23 @@ export default function EditProfile() {
             Update your profile information and coding accounts
           </p>
         </div>
+
+        {/* Profile Picture Upload Section */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center">
+              <h3 className="text-lg font-semibold mb-4">Profile Picture</h3>
+              <ProfilePictureUpload 
+                currentAvatar={student.avatarColor} 
+                username={student.username}
+                size="lg"
+              />
+              <p className="text-sm text-muted-foreground mt-4 text-center">
+                Upload a profile picture (max 5MB). Hover over the image to change it.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         <EditProfileForm 
           student={student} 

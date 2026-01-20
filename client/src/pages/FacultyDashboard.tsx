@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { NavigationBar } from "@/components/NavigationBar";
 import { FacultyAnalyticsCard } from "@/components/FacultyAnalyticsCard";
 import { BulkRefreshButton } from "@/components/BulkRefreshButton";
+import { ProfilePictureUpload } from "@/components/ProfilePictureUpload";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,7 +16,8 @@ import {
   GraduationCap,
   Trophy,
   BookOpen,
-  BarChart3
+  BarChart3,
+  Settings
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Student } from "@shared/schema";
@@ -56,6 +59,7 @@ interface FacultyAnalytics {
 }
 
 export default function FacultyDashboard() {
+  const { user } = useAuth();
   const { data: stats, isLoading } = useQuery<DepartmentStats>({
     queryKey: ["/api/faculty/department-stats"],
   });
@@ -115,11 +119,40 @@ export default function FacultyDashboard() {
               <BulkRefreshButton />
             </div>
             
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-[400px] grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="profile">Profile</TabsTrigger>
             </TabsList>
           </div>
+
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Profile Settings
+                </CardTitle>
+                <CardDescription>
+                  Update your profile picture
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center py-6">
+                  {user && (
+                    <ProfilePictureUpload 
+                      currentAvatar={user.avatar} 
+                      username={user.username}
+                      size="lg"
+                    />
+                  )}
+                  <p className="text-sm text-muted-foreground mt-4 text-center max-w-md">
+                    Upload a profile picture (max 5MB). Your photo will appear in the navigation bar and throughout the application.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="overview" className="space-y-8">
           {/* Overview Stats */}
