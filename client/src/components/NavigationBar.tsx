@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function NavigationBar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -136,9 +136,7 @@ export function NavigationBar() {
                   data-testid="button-user-menu"
                 >
                   <Avatar className="w-8 h-8">
-                    {user?.avatar && (
-                      <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
-                    )}
+                    <AvatarImage src={user?.avatar} alt={user?.username} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                       {initials}
                     </AvatarFallback>

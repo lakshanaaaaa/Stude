@@ -40,8 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Verify current user state from server
         apiRequest("GET", "/api/auth/me")
           .then((currentUser) => {
-            if (currentUser.isOnboarded !== parsedUser.isOnboarded) {
-              const updatedUser = { ...parsedUser, isOnboarded: currentUser.isOnboarded };
+            // Update user if any field has changed
+            if (currentUser.isOnboarded !== parsedUser.isOnboarded || 
+                currentUser.avatar !== parsedUser.avatar) {
+              const updatedUser = { 
+                ...parsedUser, 
+                isOnboarded: currentUser.isOnboarded,
+                avatar: currentUser.avatar 
+              };
               setUser(updatedUser);
               localStorage.setItem("user", JSON.stringify(updatedUser));
             }
