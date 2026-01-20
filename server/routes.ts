@@ -490,10 +490,21 @@ export async function registerRoutes(
         }
       }
 
-      // Check if student already exists with the current username
-      const existingStudent = await storage.getStudentByUsername(user.username);
+      // Check if student already exists with the current username or new username
+      let existingStudent = await storage.getStudentByUsername(user.username);
+      if (!existingStudent && username !== user.username) {
+        existingStudent = await storage.getStudentByUsername(username);
+      }
+      
       if (existingStudent) {
         console.log("Student already exists, updating user:", user.id);
+        
+        // If the existing student has a different username than what we want, we have a conflict
+        if (existingStudent.username !== username) {
+          console.error("Student username conflict:", { existing: existingStudent.username, requested: username });
+          return res.status(400).json({ error: "A student profile already exists with a different username" });
+        }
+        
         const updatedUser = await storage.updateUser(user.id, { 
           isOnboarded: true,
           username: username 
@@ -530,15 +541,29 @@ export async function registerRoutes(
       if (codechef) mainAccounts.push({ platform: "CodeChef" as const, username: codechef });
 
       console.log("Creating new student:", { username, department, mainAccounts });
-      const student = await storage.createStudent({
-        name: user.name || username,
-        username: username,
-        dept: department,
-        regNo: "Not Set",
-        email: user.email || `${username}@college.edu`,
-        mainAccounts,
-        subAccounts: [],
-      });
+      
+      let student;
+      try {
+        student = await storage.createStudent({
+          name: user.name || username,
+          username: username,
+          dept: department,
+          regNo: "Not Set",
+          email: user.email || `${username}@college.edu`,
+          mainAccounts,
+          subAccounts: [],
+        });
+        console.log("Student created successfully:", student.id);
+      } catch (createError) {
+        console.error("Failed to create student:", createError);
+        console.error("Student creation error details:", {
+          username,
+          department,
+          email: user.email,
+          error: createError instanceof Error ? createError.message : String(createError)
+        });
+        return res.status(500).json({ error: "Failed to create student profile" });
+      }
 
       console.log("Updating user after student creation:", user.id);
       const updatedUser = await storage.updateUser(user.id, { 
