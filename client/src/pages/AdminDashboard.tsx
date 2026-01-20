@@ -457,12 +457,23 @@ export default function AdminDashboard() {
                           {filteredUsers.map((user) => (
                             <TableRow key={user.id}>
                               <TableCell>
-                                <div>
-                                  <p className="font-medium">{user.username}</p>
-                                  {user.name && (
-                                    <p className="text-xs text-muted-foreground">{user.name}</p>
-                                  )}
-                                </div>
+                                {user.role === "student" && user.isOnboarded ? (
+                                  <Link href={`/student/${user.username}`}>
+                                    <div className="cursor-pointer hover:text-primary transition-colors">
+                                      <p className="font-medium">{user.username}</p>
+                                      {user.name && (
+                                        <p className="text-xs text-muted-foreground">{user.name}</p>
+                                      )}
+                                    </div>
+                                  </Link>
+                                ) : (
+                                  <div>
+                                    <p className="font-medium">{user.username}</p>
+                                    {user.name && (
+                                      <p className="text-xs text-muted-foreground">{user.name}</p>
+                                    )}
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {user.email || "N/A"}
