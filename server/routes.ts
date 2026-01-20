@@ -237,11 +237,20 @@ export async function registerRoutes(
         storage.getAllUsers(),
       ]);
 
-      // Only include students that still have a corresponding user account
-      const validUsernames = new Set(users.map((u) => u.username));
-      const filteredStudents = students.filter((s) => validUsernames.has(s.username));
+      // Create a map of username to user avatar
+      const userAvatarMap = new Map(users.map(u => [u.username, u.avatar]));
 
-      return res.json(filteredStudents);
+      // Only include students that still have a corresponding user account
+      // and add their avatar from the user data
+      const validUsernames = new Set(users.map((u) => u.username));
+      const studentsWithAvatars = students
+        .filter((s) => validUsernames.has(s.username))
+        .map((student) => ({
+          ...student,
+          avatar: userAvatarMap.get(student.username) || student.avatarColor,
+        }));
+
+      return res.json(studentsWithAvatars);
     } catch (error) {
       console.error("Get students error:", error);
       return res.status(500).json({ error: "Internal server error" });
@@ -251,13 +260,22 @@ export async function registerRoutes(
   app.get("/api/student/:username", authMiddleware(), async (req: Request, res: Response) => {
     try {
       const { username } = req.params;
-      const student = await storage.getStudentByUsername(username);
+      const [student, user] = await Promise.all([
+        storage.getStudentByUsername(username),
+        storage.getUserByUsername(username),
+      ]);
 
       if (!student) {
         return res.status(404).json({ error: "Student not found" });
       }
 
-      return res.json(student);
+      // Add avatar from user data
+      const studentWithAvatar = {
+        ...student,
+        avatar: user?.avatar || student.avatarColor,
+      };
+
+      return res.json(studentWithAvatar);
     } catch (error) {
       console.error("Get student error:", error);
       return res.status(500).json({ error: "Internal server error" });

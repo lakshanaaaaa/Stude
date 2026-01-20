@@ -1,12 +1,12 @@
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ExternalLink } from "lucide-react";
 import type { Student } from "@shared/schema";
 
 interface StudentCardProps {
-  student: Student;
+  student: Student & { avatar?: string };
 }
 
 export function StudentCard({ student }: StudentCardProps) {
@@ -22,6 +22,7 @@ export function StudentCard({ student }: StudentCardProps) {
       <Card className="p-4 h-full transition-all duration-200 hover-elevate active-elevate-2 cursor-pointer group" data-testid={`card-student-${student.username}`}>
         <div className="flex items-start gap-4">
           <Avatar className="w-14 h-14 flex-shrink-0">
+            <AvatarImage src={student.avatar} alt={student.name} />
             <AvatarFallback className={`${student.avatarColor || "bg-primary"} text-white font-medium text-lg`}>
               {initials}
             </AvatarFallback>
