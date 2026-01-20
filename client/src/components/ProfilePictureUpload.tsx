@@ -19,10 +19,10 @@ export function ProfilePictureUpload({ currentAvatar, username, size = "md" }: P
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch the user's current avatar from the API
+  // Only fetch the logged-in user's avatar if viewing own profile
   const { data: userData } = useQuery({
     queryKey: ["/api/auth/me"],
-    enabled: !!user,
+    enabled: !!user && user.username === username,
   });
 
   const sizeClasses = {
@@ -121,8 +121,12 @@ export function ProfilePictureUpload({ currentAvatar, username, size = "md" }: P
   };
 
   const initials = username.slice(0, 2).toUpperCase();
-  // Use userData.avatar if available, otherwise fall back to preview or currentAvatar
-  const displayAvatar = preview || userData?.avatar || currentAvatar;
+  // For own profile: use preview > userData.avatar > currentAvatar
+  // For other profiles: use currentAvatar (which comes from the student data with avatar)
+  const isOwnProfile = user?.username === username;
+  const displayAvatar = isOwnProfile 
+    ? (preview || userData?.avatar || currentAvatar)
+    : currentAvatar;
 
   return (
     <div className="flex flex-col items-center gap-4">

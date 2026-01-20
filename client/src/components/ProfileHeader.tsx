@@ -14,7 +14,7 @@ import { Link } from "wouter";
 import type { Student } from "@shared/schema";
 
 interface ProfileHeaderProps {
-  student: Student;
+  student: Student & { avatar?: string };
 }
 
 export function ProfileHeader({ student }: ProfileHeaderProps) {
@@ -29,7 +29,7 @@ export function ProfileHeader({ student }: ProfileHeaderProps) {
 
       <div className="flex flex-col md:flex-row md:items-start gap-6">
         <ProfilePictureUpload 
-          currentAvatar={student.avatarColor} 
+          currentAvatar={student.avatar || student.avatarColor} 
           username={student.username}
           size="lg"
         />
