@@ -57,15 +57,36 @@ export function configurePassport() {
               });
               console.log("New user created:", user.id);
             } else {
-              // Update existing user with Google ID
+              // User exists by email but not by Google ID
+              // This could be a user who was deleted and is signing up again
+              // Or a user who previously used a different auth method
               console.log("Updating existing user with Google ID:", user.id);
-              await storage.updateUser(user.id, {
+              console.log("Existing user role:", user.role, "isOnboarded:", user.isOnboarded);
+              
+              // If user was faculty/admin but is signing in fresh (no Google ID before),
+              // reset them to student role and require onboarding
+              const updateData: any = {
                 googleId: profile.id,
                 name: profile.displayName,
                 avatar: profile.photos?.[0]?.value,
-              });
+              };
+              
+              // If they don't have a Google ID yet, treat as fresh signup
+              if (!user.googleId) {
+                console.log("User has no Google ID - treating as fresh signup, resetting to student");
+                updateData.role = "student";
+                updateData.isOnboarded = false;
+                
+                // Clean up any old student data if they're changing roles
+                if (user.role !== "student" && user.username) {
+                  console.log("Cleaning up old student data for role change");
+                  await storage.deleteStudent(user.username);
+                }
+              }
+              
+              await storage.updateUser(user.id, updateData);
               user = await storage.getUser(user.id);
-              console.log("User updated:", user ? user.id : "failed");
+              console.log("User updated:", user ? user.id : "failed", "New role:", user?.role);
             }
           }
 
