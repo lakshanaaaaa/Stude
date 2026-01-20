@@ -29,8 +29,26 @@ import { clearImprovementCache } from "./services/improvementAnalyticsService";
 import { clearFacultyAnalyticsCache } from "./services/facultyAnalyticsService";
 import { RoleRequestModel } from "./models/RoleRequest";
 import { randomUUID } from "crypto";
+import multer from "multer";
+import { cloudinary } from "./config/cloudinary";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
+
+// Configure multer for memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 interface JWTPayload {
   id: string;
@@ -135,10 +153,80 @@ export async function registerRoutes(
         username: user.username,
         role: user.role,
         isOnboarded: user.isOnboarded,
+        avatar: user.avatar,
       });
     } catch (error) {
       console.error("Get user error:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Profile picture upload endpoint
+  app.post("/api/upload/profile-picture", authMiddleware(), upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      console.log(`[Upload] Processing profile picture for user ${user.username}`);
+
+      // Upload to Cloudinary
+      const uploadPromise = new Promise<string>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'codetrack/profile-pictures',
+            public_id: `user_${userId}`,
+            overwrite: true,
+            transformation: [
+              { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+              { quality: 'auto', fetch_format: 'auto' }
+            ]
+          },
+          (error, result) => {
+            if (error) {
+              console.error("[Upload] Cloudinary error:", error);
+              reject(error);
+            } else if (result) {
+              console.log("[Upload] Cloudinary success:", result.secure_url);
+              resolve(result.secure_url);
+            } else {
+              reject(new Error("Upload failed without error"));
+            }
+          }
+        );
+
+        uploadStream.end(req.file!.buffer);
+      });
+
+      const avatarUrl = await uploadPromise;
+
+      // Update user avatar in database
+      const updatedUser = await storage.updateUser(userId, { avatar: avatarUrl });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to update user avatar" });
+      }
+
+      console.log(`[Upload] Profile picture updated for user ${user.username}`);
+
+      return res.json({ 
+        success: true, 
+        avatarUrl,
+        message: "Profile picture updated successfully" 
+      });
+    } catch (error) {
+      console.error("Upload profile picture error:", error);
+      return res.status(500).json({ 
+        error: "Failed to upload profile picture",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
