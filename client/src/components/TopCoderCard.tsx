@@ -2,12 +2,12 @@ import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Star, Target, Flame, ArrowRight } from "lucide-react";
 import type { Student, StudentAnalytics } from "@shared/schema";
 
 interface TopCoderCardProps {
-  student: Student;
+  student: Student & { avatar?: string };
   analytics: StudentAnalytics;
 }
 
@@ -35,6 +35,7 @@ export function TopCoderCard({ student, analytics }: TopCoderCardProps) {
         <div className="flex flex-col lg:flex-row lg:items-center gap-6">
           <div className="flex items-center gap-4">
             <Avatar className="w-20 h-20 ring-4 ring-primary/20">
+              <AvatarImage src={student.avatar} alt={student.name} />
               <AvatarFallback className={`${student.avatarColor || "bg-primary"} text-white font-semibold text-2xl`}>
                 {initials}
               </AvatarFallback>
