@@ -7,6 +7,7 @@ interface AuthUser {
   username: string;
   role: UserRole;
   isOnboarded: boolean;
+  avatar?: string;
 }
 
 interface AuthContextType {

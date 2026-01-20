@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useRef, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Loader2, Upload } from "lucide-react";
@@ -18,6 +18,12 @@ export function ProfilePictureUpload({ currentAvatar, username, size = "md" }: P
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Fetch the user's current avatar from the API
+  const { data: userData } = useQuery({
+    queryKey: ["/api/auth/me"],
+    enabled: !!user,
+  });
 
   const sizeClasses = {
     sm: "w-16 h-16",
@@ -55,10 +61,15 @@ export function ProfilePictureUpload({ currentAvatar, username, size = "md" }: P
       // Update the preview with the new avatar
       setPreview(data.avatarUrl);
       
-      // Invalidate queries to refresh user data
+      // Invalidate queries to refresh user data everywhere
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       queryClient.invalidateQueries({ queryKey: ["/api/student", username] });
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      
+      // Force a page refresh after a short delay to ensure all components update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({
@@ -110,7 +121,8 @@ export function ProfilePictureUpload({ currentAvatar, username, size = "md" }: P
   };
 
   const initials = username.slice(0, 2).toUpperCase();
-  const displayAvatar = preview || currentAvatar;
+  // Use userData.avatar if available, otherwise fall back to preview or currentAvatar
+  const displayAvatar = preview || userData?.avatar || currentAvatar;
 
   return (
     <div className="flex flex-col items-center gap-4">
