@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ProfilePictureUpload } from "@/components/ProfilePictureUpload";
 import { 
   Mail, 
   Linkedin, 
@@ -17,13 +18,6 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ student }: ProfileHeaderProps) {
-  const initials = student.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
   return (
     <div className="mb-8">
       <Link href="/dashboard">
@@ -34,11 +28,11 @@ export function ProfileHeader({ student }: ProfileHeaderProps) {
       </Link>
 
       <div className="flex flex-col md:flex-row md:items-start gap-6">
-        <Avatar className="w-24 h-24 flex-shrink-0">
-          <AvatarFallback className={`${student.avatarColor || "bg-primary"} text-white font-semibold text-3xl`}>
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <ProfilePictureUpload 
+          currentAvatar={student.avatarColor} 
+          username={student.username}
+          size="lg"
+        />
 
         <div className="flex-1">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">

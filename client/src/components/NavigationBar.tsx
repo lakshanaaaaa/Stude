@@ -136,6 +136,9 @@ export function NavigationBar() {
                   data-testid="button-user-menu"
                 >
                   <Avatar className="w-8 h-8">
+                    {user?.avatar && (
+                      <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+                    )}
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                       {initials}
                     </AvatarFallback>

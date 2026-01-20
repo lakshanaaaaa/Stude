@@ -8,6 +8,7 @@ import { initializeStorage } from "./storage";
 import { computeAndStoreLeaderboards } from "./services/leaderboardService";
 import passport from "passport";
 import { configurePassport } from "./passport";
+import { configureCloudinary } from "./config/cloudinary";
 
 const app = express();
 const httpServer = createServer(app);
@@ -31,6 +32,9 @@ app.use(express.urlencoded({ extended: false }));
 // Initialize Passport
 app.use(passport.initialize());
 configurePassport();
+
+// Initialize Cloudinary
+configureCloudinary();
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
