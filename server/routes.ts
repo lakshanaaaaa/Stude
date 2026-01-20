@@ -666,22 +666,27 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
 
+      console.log(`[Delete] Starting deletion for user ${user.username || user.email} (ID: ${id})`);
+      console.log(`[Delete] User details - Role: ${user.role}, GoogleID: ${user.googleId || 'none'}, Email: ${user.email}`);
+
       // Delete associated student record if exists
       if (user.role === "student" && user.username) {
-        await storage.deleteStudent(user.username);
+        const studentDeleted = await storage.deleteStudent(user.username);
+        console.log(`[Delete] Student record deleted: ${studentDeleted}`);
         
         // Delete all weekly snapshots for this student
-        await WeeklySnapshotModel.deleteMany({ studentId: id });
-        console.log(`[Delete] Removed weekly snapshots for student ${user.username}`);
+        const snapshotsResult = await WeeklySnapshotModel.deleteMany({ studentId: id });
+        console.log(`[Delete] Removed ${snapshotsResult.deletedCount} weekly snapshots for student ${user.username}`);
       }
 
       // Delete any role requests from this user
-      await RoleRequestModel.deleteMany({ userId: id });
-      console.log(`[Delete] Removed role requests for user ${user.username || user.email}`);
+      const roleRequestsResult = await RoleRequestModel.deleteMany({ userId: id });
+      console.log(`[Delete] Removed ${roleRequestsResult.deletedCount} role requests for user ${user.username || user.email}`);
 
-      // Delete user
+      // Delete user (this removes the user record including Google ID association)
       const success = await storage.deleteUser(id);
       if (!success) {
+        console.error(`[Delete] Failed to delete user ${id}`);
         return res.status(404).json({ error: "User not found" });
       }
 
@@ -694,6 +699,7 @@ export async function registerRoutes(
       await computeAndStoreLeaderboards();
       
       console.log(`[Delete] Successfully deleted user ${user.username || user.email} and cleared all caches`);
+      console.log(`[Delete] User can now sign up again with email ${user.email} as a fresh account`);
 
       return res.json({ message: "User deleted successfully" });
     } catch (error) {
