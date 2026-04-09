@@ -22,7 +22,7 @@ export async function setupVite(server: Server, app: Express) {
       ...viteLogger,
       error: (msg, options) => {
         viteLogger.error(msg, options);
-        process.exit(1);
+        Consider handling errors in a more robust way, such as logging the error and continuing to run the process.
       },
     },
     server: serverOptions,
