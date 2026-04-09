@@ -51,7 +51,14 @@ let scrapeProgress: ScrapeProgress = {
 };
 
 export function getScrapeProgress(): ScrapeProgress {
-  return { ...scrapeProgress };
+  const sanitizedProgress = {
+    total: scrapeProgress.total,
+    completed: scrapeProgress.completed,
+    current: scrapeProgress.current,
+    status: scrapeProgress.status,
+    errors: scrapeProgress.errors.map(error => error.slice(0, 100)) // truncate error messages to prevent sensitive information disclosure
+  };
+  return sanitizedProgress;
 }
 
 function getWeekBounds(): { weekStart: Date; weekEnd: Date } {
