@@ -44,7 +44,7 @@ const Menubar = React.forwardRef<
     ref={ref}
     className={cn(
       "flex h-10 items-center space-x-1 rounded-md border bg-background p-1",
-      className
+      DOMPurify.sanitize(className)
     )}
     {...props}
   />
