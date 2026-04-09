@@ -6,7 +6,7 @@ const userSchema = new Schema<User>(
     _id: { type: String, required: true },
     id: { type: String, required: true, unique: true },
     username: { type: String, required: true, unique: true },
-    password: { type: String, required: false }, // Optional for OAuth users
+    password: { type: String, required: false, select: false }, // Use a secure password hashing library // Optional for OAuth users
     role: { type: String, enum: ["admin", "faculty", "student"], required: true },
     // Track whether the user has completed onboarding
     isOnboarded: { type: Boolean, default: false },
