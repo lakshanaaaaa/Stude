@@ -39,7 +39,7 @@ interface ImprovementAnalyticsCardProps {
 }
 
 export function ImprovementAnalyticsCard({ analytics }: ImprovementAnalyticsCardProps) {
-  const { totalUsers, improvedUsers, notImprovedUsers, improvementPercentage, platformBreakdown, userDetails } = analytics;
+  const { totalUsers, improvedUsers, notImprovedUsers, improvementPercentage, platformBreakdown, userDetails } = analytics; const sanitizedUsername = DOMPurify.sanitize(userDetails.username);
   const [showImproved, setShowImproved] = useState(false);
   const [showNotImproved, setShowNotImproved] = useState(false);
 
