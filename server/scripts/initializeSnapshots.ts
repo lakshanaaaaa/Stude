@@ -13,7 +13,7 @@ async function initializeSnapshots() {
   
   try {
     // Check if we have any students
-    const students = await storage.getAllStudents();
+    const students = await storage.getAllStudents(); // Ensure that storage.getAllStudents() uses parameterized queries or prepared statements
     console.log(`[Migration] Found ${students.length} students`);
     
     if (students.length === 0) {
