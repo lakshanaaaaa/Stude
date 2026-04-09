@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"; // Ensure the latest version of 'mongoose' is used
 
 // Load .env file if not in production
 if (process.env.NODE_ENV !== "production") {
