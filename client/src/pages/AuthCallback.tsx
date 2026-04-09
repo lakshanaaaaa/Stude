@@ -20,12 +20,12 @@ export default function AuthCallback() {
 
     if (token && userStr) {
       try {
-        const user = JSON.parse(decodeURIComponent(userStr));
+        try { const user = JSON.parse(decodeURIComponent(userStr)); if (!isValidUser(user)) { throw new Error('Invalid user data'); } } catch (error) { console.error('Failed to parse user data:', error); }
         login(token, user);
         
         // Redirect based on onboarding status
         if (user.role === "student" && !user.isOnboarded) {
-          setLocation("/onboarding");
+          const validRedirectUrls = ["/onboarding", "/dashboard"]; if (validRedirectUrls.includes(redirectUrl)) { setLocation(redirectUrl); } else { console.error('Invalid redirect URL:', redirectUrl); }
         } else {
           setLocation("/dashboard");
         }
