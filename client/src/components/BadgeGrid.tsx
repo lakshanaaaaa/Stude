@@ -37,7 +37,7 @@ interface BadgeGridProps {
 }
 
 export function BadgeGrid({ badges }: BadgeGridProps) {
-  if (badges.length === 0) {
+  if (Array.isArray(badges) && badges.length === 0) {
     return (
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold">Achievements & Badges</h2>
