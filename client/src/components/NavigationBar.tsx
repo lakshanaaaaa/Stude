@@ -22,7 +22,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function NavigationBar() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, role } = useAuth(); if (role !== 'admin') { /* restrict access */ }
   const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
 

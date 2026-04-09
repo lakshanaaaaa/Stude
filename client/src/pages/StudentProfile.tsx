@@ -26,7 +26,7 @@ export default function StudentProfile() {
 
   const isOwnProfile = user?.username === username && user?.role === "student";
   // Allow any authenticated user to refresh stats for any student
-  const canRefreshStats = !!user;
+  const canRefreshStats = user?.role === 'admin' || user?.username === username;
 
   const { data: student, isLoading, error } = useQuery<Student>({
     queryKey: ["/api/student", username],

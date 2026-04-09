@@ -18,7 +18,7 @@ export function StudentCard({ student }: StudentCardProps) {
     .slice(0, 2);
 
   return (
-    <Link href={`/student/${student.username}`}>
+    <Link href={`/student/${encodeURIComponent(student.username)}`}>
       <Card className="p-4 h-full transition-all duration-200 hover-elevate active-elevate-2 cursor-pointer group" data-testid={`card-student-${student.username}`}>
         <div className="flex items-start gap-4">
           <Avatar className="w-14 h-14 flex-shrink-0">

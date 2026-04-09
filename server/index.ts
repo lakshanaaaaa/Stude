@@ -27,10 +27,10 @@ app.use(
   }),
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: '10kb' })); // Add a limit to prevent large payloads
 
 // Initialize Passport
-app.use(passport.initialize());
+app.use(passport.initialize()); app.use(passport.session()); // Add session support
 configurePassport();
 
 // Initialize Cloudinary

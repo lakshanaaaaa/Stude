@@ -15,6 +15,9 @@ interface ProfilePictureUploadProps {
 export function ProfilePictureUpload({ currentAvatar, username, size = "md" }: ProfilePictureUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+const validateFile = (file: File) => {
+  // Implement file validation logic
+};
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -36,7 +39,7 @@ export function ProfilePictureUpload({ currentAvatar, username, size = "md" }: P
       const formData = new FormData();
       formData.append('image', file);
 
-      const token = localStorage.getItem("token");
+      const token = await getTokenFromSecureStorage();
       const response = await fetch("/api/upload/profile-picture", {
         method: "POST",
         headers: {

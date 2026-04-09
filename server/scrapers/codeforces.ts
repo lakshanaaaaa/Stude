@@ -25,7 +25,7 @@ export async function scrapeCodeForces(username: string): Promise<{
   badges: Badge[];
 }> {
   try {
-    const userInfo = await axios.get(`https://codeforces.com/api/user.info?handles=${username}`, { timeout: 10000 });
+    const userInfo = await axios.get(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(username)}`, { timeout: 10000 });
     
     if (userInfo.data.status !== "OK") {
       throw new Error(`Codeforces user ${username} not found`);

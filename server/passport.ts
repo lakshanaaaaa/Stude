@@ -1,9 +1,9 @@
 import passport from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20"; // Ensure passport-google-oauth20 library is up-to-date
 import { storage } from "./storage";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+if (!process.env.GOOGLE_CLIENT_SECRET) { throw new Error('GOOGLE_CLIENT_SECRET environment variable is not set'); } const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "https://stude-mvnf.onrender.com/api/auth/google/callback";
 
 export function configurePassport() {

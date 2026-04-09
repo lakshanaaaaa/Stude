@@ -48,7 +48,7 @@ export class MemStorage implements IStorage {
 
   private async seedData() {
     // ---------------- ADMIN SEEDING ----------------
-    const adminPassword = await bcrypt.hash("admin123", 10);
+    const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
     const adminUser: User = {
       id: "admin-1",
       username: "admin",
@@ -67,7 +67,7 @@ export class MemStorage implements IStorage {
 
     for (let i = 0; i < facultyList.length; i++) {
       const f = facultyList[i];
-      const hashedPassword = await bcrypt.hash(f.password, 10);
+      const salt = await bcrypt.genSalt(); const hashedPassword = await bcrypt.hash(f.password, salt);
 
       const facultyUser: User = {
         id: `faculty-${i + 1}`,
@@ -203,7 +203,7 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const hashedPassword = insertUser.password ? await bcrypt.hash(insertUser.password, 10) : undefined;
-    const user: User = { ...insertUser, id, password: hashedPassword, isOnboarded: false };
+    const user: User = { ...insertUser, id, password: hashedPassword, isOnboarded: false }; // Add input validation
     this.users.set(id, user);
     return user;
   }

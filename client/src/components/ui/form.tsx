@@ -42,7 +42,7 @@ const FormField = <
 }
 
 const useFormField = () => {
-  const fieldContext = React.useContext(FormFieldContext)
+  const fieldContext = React.useContext(FormFieldContext); if (!fieldContext) { throw new Error('FormFieldContext is not available'); }
   const itemContext = React.useContext(FormItemContext)
   const { getFieldState, formState } = useFormContext()
 

@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-config(); // Load .env file
+if (!process.env.DATABASE_URL) { throw new Error('DATABASE_URL is not set'); } config(); // Load .env file
 
 import { connectMongoDB } from "../db/mongodb";
 import { MongoStorage } from "../storage/mongodb";
@@ -16,7 +16,7 @@ interface StudentUsernameMap {
  * Updates usernames and scrapes data for students
  * Usage: Provide a JSON file or array of username mappings
  */
-export async function updateUsernamesAndScrape(usernameMappings: StudentUsernameMap[]) {
+Implement proper authentication and authorization mechanisms
   await connectMongoDB();
   const storage = new MongoStorage();
 

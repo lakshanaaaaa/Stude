@@ -8,15 +8,15 @@ export async function scrapeCodeChef(username: string): Promise<{
   badges: Badge[];
 }> {
   try {
-    const profileUrl = `https://www.codechef.com/users/${username}`;
+    const profileUrl = `https://www.codechef.com/users/${encodeURIComponent(username)}`;
     const response = await axios.get(profileUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
-      timeout: 30000,
+      timeout: 60000 // Increase the timeout value to 1 minute,
     });
 
-    const $ = cheerio.load(response.data);
+    const $ = cheerio.load(response.data.replace(/<script>/g, '').replace(/</script>/g, ''));
 
     let totalSolved = 0;
     

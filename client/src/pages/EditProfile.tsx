@@ -14,12 +14,12 @@ import { AlertCircle, ArrowLeft, ShieldAlert } from "lucide-react";
 import type { Student, UpdateStudent } from "@shared/schema";
 
 export default function EditProfile() {
-  const { user } = useAuth();
+  const { user } = useAuth(); if (!user || user.role !== 'student') { throw new Error('Unauthorized'); }
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const { data: student, isLoading, error } = useQuery<Student>({
-    queryKey: ["/api/student", user?.username],
+    queryKey: ["/api/student", encodeURIComponent(user?.username)],
     enabled: !!user?.username && user?.role === "student",
   });
 

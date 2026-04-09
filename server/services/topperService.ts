@@ -63,7 +63,12 @@ export interface WeeklyMetrics {
 /**
  * Calculates weekly metrics for a single student
  */
-export async function calculateWeeklyMetrics(student: Student): Promise<WeeklyMetrics | null> {
+export async function calculateWeeklyMetrics(studentId: string): Promise<WeeklyMetrics | null> {
+  const student = await getStudentFromDatabase(studentId);
+  if (!student) {
+    throw new Error('Student not found');
+  }
+  // ... rest of the function remains the same
   try {
     // Get baseline snapshot from 7 days ago
     const baselineSnapshot = await getBaselineSnapshot(student.id, 7);

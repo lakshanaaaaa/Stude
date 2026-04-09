@@ -28,7 +28,7 @@ export class MongoStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const hashedPassword = insertUser.password ? await bcrypt.hash(insertUser.password, 10) : undefined;
+    const hashedPassword = insertUser.password ? await bcrypt.hash(insertUser.password, 12) : undefined;
     const user = new UserModel({
       _id: id,
       id,
