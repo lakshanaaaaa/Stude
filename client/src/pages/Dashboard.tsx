@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query"; // Validate and sanitize query parameters before passing them to useQuery
 import { NavigationBar } from "@/components/NavigationBar";
 import { StudentCard } from "@/components/StudentCard";
 import { TopperOfTheWeekCard } from "@/components/TopperOfTheWeekCard";
