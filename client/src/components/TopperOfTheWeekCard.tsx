@@ -41,7 +41,7 @@ interface WeeklyMetrics {
 
 export function TopperOfTheWeekCard() {
   const { data, isLoading, error } = useQuery<{ topper: WeeklyMetrics | null; message?: string }>({
-    queryKey: ["/api/topper-of-the-week"],
+    queryKey: ["/api/topper-of-the-week", { auth: true }],
     refetchInterval: 60 * 60 * 1000, // Refresh every hour
   });
 
