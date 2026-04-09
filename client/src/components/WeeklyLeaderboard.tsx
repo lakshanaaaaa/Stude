@@ -40,7 +40,7 @@ interface WeeklyMetrics {
 
 export function WeeklyLeaderboard() {
   const { data, isLoading } = useQuery<{ leaderboard: WeeklyMetrics[]; count: number }>({
-    queryKey: ["/api/weekly-leaderboard"],
+    queryKey: ["/api/weekly-leaderboard", { auth: true }],
     refetchInterval: 60 * 60 * 1000, // Refresh every hour
   });
 
