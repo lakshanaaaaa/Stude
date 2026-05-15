@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -27,12 +28,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart3, Loader2, CheckCircle2, GraduationCap, Users, Shield, Clock, XCircle } from "lucide-react";
+import { BarChart3, Loader2, CheckCircle2, GraduationCap, Users, Shield, Clock, XCircle, Plus, X } from "lucide-react";
 
 // Student onboarding schema
 const studentOnboardingSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be at most 20 characters"),
   department: z.string().min(1, "Please select a department"),
+  skills: z.array(z.string()).min(1, "Please add at least one skill"),
+  domains: z.array(z.string()).min(1, "Please select at least one domain of interest"),
   leetcode: z.string().optional(),
   codeforces: z.string().optional(),
   codechef: z.string().optional(),
@@ -71,6 +74,65 @@ const departments = [
   "CIVIL",
 ];
 
+// Common skills by category
+const skillCategories = {
+  "Programming Languages": [
+    "JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Rust", 
+    "PHP", "Ruby", "Swift", "Kotlin", "Dart", "C", "Scala"
+  ],
+  "Frontend Development": [
+    "React", "Vue.js", "Angular", "HTML", "CSS", "SASS", "Tailwind CSS", 
+    "Bootstrap", "jQuery", "Next.js", "Nuxt.js", "Svelte"
+  ],
+  "Backend Development": [
+    "Node.js", "Express.js", "Django", "Flask", "Spring Boot", "ASP.NET", 
+    "Laravel", "Ruby on Rails", "FastAPI", "NestJS"
+  ],
+  "Mobile Development": [
+    "React Native", "Flutter", "Android", "iOS", "Xamarin", "Ionic"
+  ],
+  "Databases": [
+    "MongoDB", "PostgreSQL", "MySQL", "Redis", "SQLite", "Firebase", 
+    "DynamoDB", "Cassandra", "Oracle"
+  ],
+  "Cloud & DevOps": [
+    "AWS", "Azure", "GCP", "Docker", "Kubernetes", "Jenkins", "Git", 
+    "GitHub Actions", "Terraform", "Ansible"
+  ],
+  "Data Science & AI": [
+    "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Pandas", 
+    "NumPy", "Scikit-learn", "OpenCV", "NLP", "Computer Vision"
+  ],
+  "Other": [
+    "DSA", "System Design", "GraphQL", "REST API", "Microservices", 
+    "Blockchain", "IoT", "Cybersecurity", "Testing", "Agile"
+  ]
+};
+
+// Domain categories
+const domainOptions = [
+  "Web Development",
+  "Mobile App Development", 
+  "Data Science & Analytics",
+  "Machine Learning & AI",
+  "Cloud Computing",
+  "Cybersecurity",
+  "Game Development",
+  "IoT & Embedded Systems",
+  "Blockchain & Cryptocurrency",
+  "E-commerce",
+  "FinTech",
+  "HealthTech",
+  "EdTech",
+  "Social Media & Networking",
+  "Enterprise Software",
+  "DevOps & Infrastructure",
+  "UI/UX Design",
+  "Quality Assurance",
+  "Research & Development",
+  "Consulting & Strategy"
+];
+
 type SelectedRole = "student" | "faculty" | "admin" | null;
 
 export default function Onboarding() {
@@ -81,6 +143,10 @@ export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+  const [customSkill, setCustomSkill] = useState("");
+  const [customDomain, setCustomDomain] = useState("");
 
   // Check if user has a pending role request
   const { data: roleRequestStatus, isLoading: checkingRoleRequest } = useQuery({
@@ -93,6 +159,8 @@ export default function Onboarding() {
     defaultValues: {
       username: "",
       department: "",
+      skills: [],
+      domains: [],
       leetcode: "",
       codeforces: "",
       codechef: "",
@@ -215,7 +283,59 @@ export default function Onboarding() {
       if (isValid) {
         setStep(4);
       }
+    } else if (step === 4) {
+      if (selectedSkills.length === 0) {
+        toast({
+          title: "Skills required",
+          description: "Please select at least one skill.",
+          variant: "destructive",
+        });
+        return;
+      }
+      studentForm.setValue("skills", selectedSkills);
+      setStep(5);
+    } else if (step === 5) {
+      if (selectedDomains.length === 0) {
+        toast({
+          title: "Domains required", 
+          description: "Please select at least one domain of interest.",
+          variant: "destructive",
+        });
+        return;
+      }
+      studentForm.setValue("domains", selectedDomains);
+      setStep(6);
     }
+  };
+
+  const addCustomSkill = () => {
+    if (customSkill.trim() && !selectedSkills.includes(customSkill.trim())) {
+      setSelectedSkills([...selectedSkills, customSkill.trim()]);
+      setCustomSkill("");
+    }
+  };
+
+  const addCustomDomain = () => {
+    if (customDomain.trim() && !selectedDomains.includes(customDomain.trim())) {
+      setSelectedDomains([...selectedDomains, customDomain.trim()]);
+      setCustomDomain("");
+    }
+  };
+
+  const toggleSkill = (skill: string) => {
+    setSelectedSkills(prev => 
+      prev.includes(skill) 
+        ? prev.filter(s => s !== skill)
+        : [...prev, skill]
+    );
+  };
+
+  const toggleDomain = (domain: string) => {
+    setSelectedDomains(prev =>
+      prev.includes(domain)
+        ? prev.filter(d => d !== domain)
+        : [...prev, domain]
+    );
   };
 
   const onStudentSubmit = (data: StudentOnboardingData) => {
@@ -548,9 +668,18 @@ export default function Onboarding() {
     );
   }
 
-  // Student Onboarding Flow (Steps 2-4)
-  const totalSteps = 4;
-  const currentStepLabel = step === 2 ? "Choose Username" : step === 3 ? "Select Department" : "Connect Accounts";
+  // Student Onboarding Flow (Steps 2-6)
+  const totalSteps = 6;
+  const getStepLabel = (currentStep: number) => {
+    switch(currentStep) {
+      case 2: return "Choose Username";
+      case 3: return "Select Department";
+      case 4: return "Add Your Skills";
+      case 5: return "Choose Domains";
+      case 6: return "Connect Accounts";
+      default: return "";
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -562,7 +691,7 @@ export default function Onboarding() {
             </div>
             <h1 className="text-3xl font-bold">Welcome to CodeTrack</h1>
             <p className="text-muted-foreground mt-2">
-              Step {step - 1} of {totalSteps - 1}: {currentStepLabel}
+              Step {step - 1} of {totalSteps - 1}: {getStepLabel(step)}
             </p>
           </div>
 
@@ -571,12 +700,16 @@ export default function Onboarding() {
               <CardTitle className="text-xl">
                 {step === 2 && "Choose Your Username"}
                 {step === 3 && "Select Your Department"}
-                {step === 4 && "Connect Your Accounts"}
+                {step === 4 && "Add Your Skills"}
+                {step === 5 && "Choose Your Domains"}
+                {step === 6 && "Connect Your Accounts"}
               </CardTitle>
               <CardDescription>
                 {step === 2 && "Pick a unique username for your profile"}
                 {step === 3 && "Tell us which department you belong to"}
-                {step === 4 && "Add at least one coding platform username"}
+                {step === 4 && "Select skills you have or want to develop"}
+                {step === 5 && "Pick domains that interest you"}
+                {step === 6 && "Add at least one coding platform username"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -659,6 +792,133 @@ export default function Onboarding() {
                   )}
 
                   {step === 4 && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-3 block">Select Your Skills</label>
+                        <div className="space-y-4">
+                          {Object.entries(skillCategories).map(([category, skills]) => (
+                            <div key={category}>
+                              <h4 className="text-sm font-medium text-muted-foreground mb-2">{category}</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {skills.map((skill) => (
+                                  <Badge
+                                    key={skill}
+                                    variant={selectedSkills.includes(skill) ? "default" : "outline"}
+                                    className="cursor-pointer hover:bg-primary/80"
+                                    onClick={() => toggleSkill(skill)}
+                                  >
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="mt-4">
+                          <label className="text-sm font-medium">Add Custom Skill</label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              value={customSkill}
+                              onChange={(e) => setCustomSkill(e.target.value)}
+                              placeholder="Enter a skill not listed above"
+                              onKeyPress={(e) => e.key === "Enter" && addCustomSkill()}
+                            />
+                            <Button
+                              type="button"
+                              onClick={addCustomSkill}
+                              size="sm"
+                              disabled={!customSkill.trim()}
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {selectedSkills.length > 0 && (
+                          <div className="mt-4">
+                            <label className="text-sm font-medium mb-2 block">Selected Skills ({selectedSkills.length})</label>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedSkills.map((skill) => (
+                                <Badge key={skill} variant="default" className="gap-1">
+                                  {skill}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSkill(skill)}
+                                    className="ml-1 hover:text-destructive"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 5 && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-3 block">Choose Your Domains of Interest</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {domainOptions.map((domain) => (
+                            <Badge
+                              key={domain}
+                              variant={selectedDomains.includes(domain) ? "default" : "outline"}
+                              className="cursor-pointer hover:bg-primary/80 justify-center p-2 text-center"
+                              onClick={() => toggleDomain(domain)}
+                            >
+                              {domain}
+                            </Badge>
+                          ))}
+                        </div>
+                        
+                        <div className="mt-4">
+                          <label className="text-sm font-medium">Add Custom Domain</label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              value={customDomain}
+                              onChange={(e) => setCustomDomain(e.target.value)}
+                              placeholder="Enter a domain not listed above"
+                              onKeyPress={(e) => e.key === "Enter" && addCustomDomain()}
+                            />
+                            <Button
+                              type="button"
+                              onClick={addCustomDomain}
+                              size="sm"
+                              disabled={!customDomain.trim()}
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {selectedDomains.length > 0 && (
+                          <div className="mt-4">
+                            <label className="text-sm font-medium mb-2 block">Selected Domains ({selectedDomains.length})</label>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedDomains.map((domain) => (
+                                <Badge key={domain} variant="default" className="gap-1">
+                                  {domain}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleDomain(domain)}
+                                    className="ml-1 hover:text-destructive"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 6 && (
                     <>
                       <FormField
                         control={studentForm.control}
@@ -730,7 +990,7 @@ export default function Onboarding() {
                       Back
                     </Button>
                     
-                    {step < 4 ? (
+                    {step < 6 ? (
                       <Button 
                         type="button"
                         onClick={handleNextStep}

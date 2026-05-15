@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import passport from "passport";
 import type { UserRole, User } from "@shared/schema";
+import { StudentModel } from "./models/Student";
 import { scrapeStudentData, scrapePlatformAccounts, mergeScrapeResults } from "./scrapers/index";
 import { 
   scrapeAllStudentsForPlatform, 
@@ -443,6 +444,250 @@ export async function registerRoutes(
     }
   });
 
+  // Update student skills
+  app.put("/api/student/:username/skills", authMiddleware(["student", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const { skills } = req.body;
+
+      if (!Array.isArray(skills)) {
+        return res.status(400).json({ error: "Skills must be an array" });
+      }
+
+      const updatedStudent = await StudentModel.findOneAndUpdate(
+        { username },
+        { $set: { skills } },
+        { new: true }
+      );
+
+      if (!updatedStudent) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      return res.json({ success: true, skills: updatedStudent.skills });
+    } catch (error: any) {
+      console.error("Update skills error:", error);
+      return res.status(500).json({ error: "Failed to update skills" });
+    }
+  });
+
+  // Update student projects
+  app.put("/api/student/:username/projects", authMiddleware(["student", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const { projects } = req.body;
+
+      if (!Array.isArray(projects)) {
+        return res.status(400).json({ error: "Projects must be an array" });
+      }
+
+      const updatedStudent = await StudentModel.findOneAndUpdate(
+        { username },
+        { $set: { projects } },
+        { new: true }
+      );
+
+      if (!updatedStudent) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      return res.json({ success: true, projects: updatedStudent.projects });
+    } catch (error: any) {
+      console.error("Update projects error:", error);
+      return res.status(500).json({ error: "Failed to update projects" });
+    }
+  });
+
+  // Update student domain preferences
+  app.put("/api/student/:username/domains", authMiddleware(["student", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const { domains } = req.body;
+
+      if (!Array.isArray(domains)) {
+        return res.status(400).json({ error: "Domains must be an array" });
+      }
+
+      const updatedStudent = await StudentModel.findOneAndUpdate(
+        { username },
+        { $set: { domains } },
+        { new: true }
+      );
+
+      if (!updatedStudent) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      return res.json({ success: true, domains: updatedStudent.domains });
+    } catch (error: any) {
+      console.error("Update domains error:", error);
+      return res.status(500).json({ error: "Failed to update domains" });
+    }
+  });
+
+  // Refresh student analytics (weekly activity + derived scores)
+  app.post("/api/student/:username/refresh-analytics", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      
+      const student = await StudentModel.findOne({ username });
+      if (!student) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      const { StudentAnalyticsService } = await import("./services/studentAnalyticsService");
+      await StudentAnalyticsService.updateStudentAnalytics(student.id);
+
+      const updatedStudent = await StudentModel.findOne({ username });
+      
+      return res.json({ 
+        success: true, 
+        weeklyActivity: updatedStudent?.weeklyActivity,
+        derivedScores: updatedStudent?.derivedScores
+      });
+    } catch (error: any) {
+      console.error("Refresh analytics error:", error);
+      return res.status(500).json({ error: "Failed to refresh analytics" });
+    }
+  });
+
+  // Extract skills from resume text
+  app.post("/api/student/:username/extract-skills", authMiddleware(["student", "admin"]), async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const { text } = req.body;
+
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: "Text content is required" });
+      }
+
+      const { StudentAnalyticsService } = await import("./services/studentAnalyticsService");
+      const extractedSkills = StudentAnalyticsService.extractSkillsFromText(text);
+
+      return res.json({ success: true, skills: extractedSkills });
+    } catch (error: any) {
+      console.error("Extract skills error:", error);
+      return res.status(500).json({ error: "Failed to extract skills" });
+    }
+  });
+
+  // Bulk refresh analytics for all students (admin only)
+  app.post("/api/admin/students/refresh-analytics", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { StudentAnalyticsService } = await import("./services/studentAnalyticsService");
+      await StudentAnalyticsService.updateAllStudentAnalytics();
+
+      return res.json({ success: true, message: "Analytics refreshed for all students" });
+    } catch (error: any) {
+      console.error("Bulk refresh analytics error:", error);
+      return res.status(500).json({ error: "Failed to refresh analytics" });
+    }
+  });
+
+  // Get enhanced analytics for a student (job matching format)
+  app.get("/api/student/:username/enhanced-analytics", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const student = await storage.getStudentByUsername(username);
+      
+      if (!student) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      const { EnhancedAnalyticsService } = await import("./services/enhancedAnalyticsService");
+      const analytics = await EnhancedAnalyticsService.generateStudentAnalytics(student.id);
+
+      return res.json(analytics);
+    } catch (error: any) {
+      console.error("Enhanced analytics error:", error);
+      return res.status(500).json({ error: "Failed to generate enhanced analytics" });
+    }
+  });
+
+  // Update enhanced analytics for a student
+  app.post("/api/student/:username/refresh-enhanced-analytics", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const student = await storage.getStudentByUsername(username);
+      
+      if (!student) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      const { EnhancedAnalyticsService } = await import("./services/enhancedAnalyticsService");
+      await EnhancedAnalyticsService.updateStudentEnhancedAnalytics(student.id);
+
+      return res.json({ success: true, message: "Enhanced analytics updated successfully" });
+    } catch (error: any) {
+      console.error("Refresh enhanced analytics error:", error);
+      return res.status(500).json({ error: "Failed to refresh enhanced analytics" });
+    }
+  });
+
+  // Bulk update enhanced analytics for all students (admin only)
+  app.post("/api/admin/students/refresh-enhanced-analytics", authMiddleware(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { EnhancedAnalyticsService } = await import("./services/enhancedAnalyticsService");
+      await EnhancedAnalyticsService.updateAllStudentsEnhancedAnalytics();
+
+      return res.json({ success: true, message: "Enhanced analytics refreshed for all students" });
+    } catch (error: any) {
+      console.error("Bulk refresh enhanced analytics error:", error);
+      return res.status(500).json({ error: "Failed to refresh enhanced analytics" });
+    }
+  });
+
+  // JD Matcher API endpoint
+  app.post("/api/match", authMiddleware(), async (req: Request, res: Response) => {
+    try {
+      const { jd, topN } = req.body;
+      
+      if (!jd || typeof jd !== 'string') {
+        return res.status(400).json({ error: "Job description is required" });
+      }
+
+      const { EnhancedAnalyticsService } = await import("./services/enhancedAnalyticsService");
+      
+      // Get all students with their enhanced analytics
+      const students = await StudentModel.find({});
+      const matches = [];
+
+      for (const student of students.slice(0, topN || 3)) {
+        try {
+          const analytics = await EnhancedAnalyticsService.generateStudentAnalytics(student.id);
+          
+          // Simple matching score based on skills overlap
+          const jdLower = jd.toLowerCase();
+          const skillMatches = analytics.normalizedSkills.filter(skill => 
+            jdLower.includes(skill.toLowerCase())
+          );
+          
+          const score = Math.min(100, (skillMatches.length / Math.max(analytics.normalizedSkills.length, 1)) * 100 + 
+                                     (analytics.performanceMetrics.problemSolvingScore * 0.3) +
+                                     (analytics.activityMetrics.recentActivityScore * 0.2));
+          
+          matches.push({
+            studentId: student.id,
+            name: student.name,
+            score: Math.round(score),
+            reason: `Matches ${skillMatches.length} skills: ${skillMatches.slice(0, 3).join(', ')}${skillMatches.length > 3 ? '...' : ''}`,
+            analytics
+          });
+        } catch (error) {
+          console.error(`Failed to generate analytics for student ${student.id}:`, error);
+        }
+      }
+
+      // Sort by score descending
+      matches.sort((a, b) => b.score - a.score);
+
+      return res.json({ matches: matches.slice(0, topN || 3) });
+    } catch (error: any) {
+      console.error("JD Match error:", error);
+      return res.status(500).json({ error: "Failed to match candidates" });
+    }
+  });
+
   // Leaderboard APIs
   app.get(
     "/api/leaderboard/overall",
@@ -550,7 +795,7 @@ export async function registerRoutes(
 
   app.post("/api/auth/onboard", authMiddleware(["student"]), async (req: Request, res: Response) => {
     try {
-      const { username, department, leetcode, codeforces, codechef } = req.body;
+      const { username, department, skills, domains, leetcode, codeforces, codechef } = req.body;
       const currentUsername = req.user!.username;
       const userId = req.user!.id;
 
@@ -580,6 +825,16 @@ export async function registerRoutes(
       if (!username || !department) {
         console.error("Missing required fields:", { username, department });
         return res.status(400).json({ error: "Username and department are required" });
+      }
+
+      if (!skills || !Array.isArray(skills) || skills.length === 0) {
+        console.error("Skills are required");
+        return res.status(400).json({ error: "At least one skill is required" });
+      }
+
+      if (!domains || !Array.isArray(domains) || domains.length === 0) {
+        console.error("Domains are required");
+        return res.status(400).json({ error: "At least one domain of interest is required" });
       }
 
       if (!leetcode && !codeforces && !codechef) {
@@ -646,7 +901,7 @@ export async function registerRoutes(
       if (codeforces) mainAccounts.push({ platform: "CodeForces" as const, username: codeforces });
       if (codechef) mainAccounts.push({ platform: "CodeChef" as const, username: codechef });
 
-      console.log("Creating new student:", { username, department, mainAccounts });
+      console.log("Creating new student:", { username, department, skills, domains, mainAccounts });
       
       let student;
       try {
@@ -656,6 +911,9 @@ export async function registerRoutes(
           dept: department,
           regNo: "Not Set",
           email: user.email || `${username}@college.edu`,
+          skills: skills || [],
+          domains: domains || [],
+          projects: [], // Will be added later by the student
           mainAccounts,
           subAccounts: [],
         });
@@ -665,6 +923,8 @@ export async function registerRoutes(
         console.error("Student creation error details:", {
           username,
           department,
+          skills,
+          domains,
           email: user.email,
           error: createError instanceof Error ? createError.message : String(createError)
         });

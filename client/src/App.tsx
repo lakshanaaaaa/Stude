@@ -14,6 +14,7 @@ import StudentProfile from "@/pages/StudentProfile";
 import EditProfile from "@/pages/EditProfile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import FacultyDashboard from "@/pages/FacultyDashboard";
+import JDMatcher from "@/pages/JDMatcher";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -124,6 +125,9 @@ function Router() {
       </Route>
       <Route path="/faculty">
         <ProtectedRoute component={FacultyDashboard} allowedRoles={["faculty"]} />
+      </Route>
+      <Route path="/jd-matcher">
+        <ProtectedRoute component={JDMatcher} />
       </Route>
       <Route component={NotFound} />
     </Switch>
