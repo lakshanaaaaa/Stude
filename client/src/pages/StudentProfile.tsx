@@ -8,6 +8,9 @@ import { AccountCard } from "@/components/AccountCard";
 import { ProblemStatsCard } from "@/components/ProblemStatsCard";
 import { ContestStatsCard } from "@/components/ContestStatsCard";
 import { BadgeGrid } from "@/components/BadgeGrid";
+import { SkillsManager } from "@/components/SkillsManager";
+import { ProjectsManager } from "@/components/ProjectsManager";
+import { DomainPreferences } from "@/components/DomainPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -158,6 +161,28 @@ export default function StudentProfile() {
         <ProfileHeader student={student} />
 
         <div className="space-y-8">
+          {/* Skills and Projects Section - Read Only */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SkillsManager
+              username={username!}
+              skills={student.skills || []}
+              canEdit={false}
+            />
+            <DomainPreferences
+              username={username!}
+              domains={student.domains || []}
+              canEdit={false}
+            />
+          </div>
+
+          {/* Projects Section - Read Only */}
+          <ProjectsManager
+            username={username!}
+            projects={student.projects || []}
+            canEdit={false}
+          />
+
+          {/* Existing Coding Accounts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <AccountCard 
               title="Main Coding Accounts" 
@@ -171,6 +196,7 @@ export default function StudentProfile() {
             />
           </div>
 
+          {/* Existing Analytics Section */}
           {analytics && (
             <>
               {analytics.problemStats && <ProblemStatsCard stats={analytics.problemStats} contestStats={analytics.contestStats} />}

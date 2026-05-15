@@ -13,8 +13,11 @@
     "db:push": "drizzle-kit push",
     "db:scrape": "tsx server/scripts/scrapeStudents.ts",
     "db:update-scrape": "tsx server/scripts/inputUsernames.ts",
+    "db:migrate": "tsx server/scripts/runMigration.ts",
+    "db:migrate-enhanced": "tsx server/scripts/migrateToEnhancedAnalytics.ts",
     "test:scrape": "tsx server/scripts/testScraping.ts",
     "test:quick": "tsx server/scripts/quickTest.ts",
+    "test:enhanced-analytics": "tsx server/scripts/testEnhancedAnalytics.ts",
     "make-admin": "tsx server/scripts/make-admin.ts"
   },
   "dependencies": {

@@ -10,7 +10,8 @@ import {
   User,
   Edit3,
   Home,
-  Shield
+  Shield,
+  Search
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,6 +61,17 @@ export function NavigationBar() {
             >
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Dashboard</span>
+            </Button>
+
+            <Button 
+              variant={location === "/jd-matcher" ? "secondary" : "ghost"} 
+              size="sm"
+              className="gap-2"
+              data-testid="link-jd-matcher"
+              onClick={() => setLocation("/jd-matcher")}
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden sm:inline">JD Matcher</span>
             </Button>
 
             {user?.role === "admin" && (

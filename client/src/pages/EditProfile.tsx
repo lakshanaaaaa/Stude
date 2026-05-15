@@ -4,6 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { NavigationBar } from "@/components/NavigationBar";
 import { EditProfileForm } from "@/components/EditProfileForm";
 import { ProfilePictureUpload } from "@/components/ProfilePictureUpload";
+import { SkillsManager } from "@/components/SkillsManager";
+import { DomainPreferences } from "@/components/DomainPreferences";
+import { ProjectsManager } from "@/components/ProjectsManager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -149,6 +152,29 @@ export default function EditProfile() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Skills and Preferences Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <SkillsManager
+            username={student.username}
+            skills={student.skills || []}
+            canEdit={true}
+          />
+          <DomainPreferences
+            username={student.username}
+            domains={student.domains || []}
+            canEdit={true}
+          />
+        </div>
+
+        {/* Projects Section */}
+        <div className="mb-6">
+          <ProjectsManager
+            username={student.username}
+            projects={student.projects || []}
+            canEdit={true}
+          />
+        </div>
 
         <EditProfileForm 
           student={student} 

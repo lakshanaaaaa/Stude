@@ -161,6 +161,9 @@ export class MemStorage implements IStorage {
         linkedin: `https://linkedin.com/in/${s.username}`,
         github: `https://github.com/${s.username}`,
         resumeLink: `https://drive.google.com/resume-${s.username}`,
+        skills: [], // Will be populated by migration or manual entry
+        domains: [], // Will be populated by migration or manual entry
+        projects: [], // Will be populated by migration or manual entry
         mainAccounts: [
           { platform: "LeetCode", username: `${s.username}_lc` },
           { platform: "CodeForces", username: `${s.username}_cf` },

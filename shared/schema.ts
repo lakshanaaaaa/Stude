@@ -42,6 +42,75 @@ export const insertUserSchema = userSchema.omit({ id: true });
 export type User = z.infer<typeof userSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
+// Project schema
+export const projectSchema = z.object({
+  name: z.string().min(1),
+  techStack: z.array(z.string()),
+  domain: z.string().min(1),
+  impactScore: z.number().min(0).max(100),
+  description: z.string().optional(),
+  githubUrl: z.string().optional(),
+  liveUrl: z.string().optional(),
+});
+
+export type Project = z.infer<typeof projectSchema>;
+
+// Weekly activity schema
+export const weeklyActivitySchema = z.object({
+  problemsSolved7Days: z.number().default(0),
+  contestsAttended30Days: z.number().default(0),
+  ratingGrowth30Days: z.number().default(0),
+  lastUpdated: z.string().optional(), // ISO date string
+});
+
+export type WeeklyActivity = z.infer<typeof weeklyActivitySchema>;
+
+// Skill vector schema for proficiency tracking
+export const skillVectorSchema = z.record(z.string(), z.number().min(0).max(100));
+export type SkillVector = z.infer<typeof skillVectorSchema>;
+
+// Performance metrics schema
+export const performanceMetricsSchema = z.object({
+  problemSolvingScore: z.number().min(0).max(100).default(0),
+  contestScore: z.number().min(0).max(100).default(0),
+  difficultyScore: z.object({
+    easy: z.number().min(0).max(100).default(0),
+    medium: z.number().min(0).max(100).default(0),
+    hard: z.number().min(0).max(100).default(0),
+  }),
+});
+
+export type PerformanceMetrics = z.infer<typeof performanceMetricsSchema>;
+
+// Activity metrics schema
+export const activityMetricsSchema = z.object({
+  recentActivityScore: z.number().min(0).max(100).default(0),
+  problemsLast7Days: z.number().default(0),
+  ratingGrowth: z.number().default(0),
+});
+
+export type ActivityMetrics = z.infer<typeof activityMetricsSchema>;
+
+// Project metrics schema
+export const projectMetricsSchema = z.object({
+  projectCount: z.number().default(0),
+  relevantTech: z.array(z.string()).default([]),
+  projectStrengthScore: z.number().min(0).max(100).default(0),
+});
+
+export type ProjectMetrics = z.infer<typeof projectMetricsSchema>;
+
+// Derived scores schema (keeping for backward compatibility)
+export const derivedScoresSchema = z.object({
+  problemSolvingScore: z.number().min(0).max(100).default(0),
+  contestStrengthScore: z.number().min(0).max(100).default(0),
+  consistencyScore: z.number().min(0).max(100).default(0),
+  overallScore: z.number().min(0).max(100).default(0),
+  lastCalculated: z.string().optional(), // ISO date string
+});
+
+export type DerivedScores = z.infer<typeof derivedScoresSchema>;
+
 // Student schema
 export const studentSchema = z.object({
   id: z.string(),
@@ -56,6 +125,17 @@ export const studentSchema = z.object({
   mainAccounts: z.array(codingAccountSchema),
   subAccounts: z.array(codingAccountSchema),
   avatarColor: z.string().optional(),
+  // NEW: Normalized skills for JD matching (MOST IMPORTANT)
+  skills: z.array(z.string()).default([]),
+  // NEW: Domain preferences for interest matching
+  domains: z.array(z.string()).default([]),
+  // NEW: Project portfolio for selection reasoning
+  projects: z.array(projectSchema).default([]),
+  // NEW: Weekly activity summary for evidence
+  weeklyActivity: weeklyActivitySchema.optional(),
+  // NEW: Derived performance scores for ranking
+  derivedScores: derivedScoresSchema.optional(),
+  // Existing analytics data
   problemStats: z.object({
     total: z.number().default(0),
     easy: z.number().default(0),
@@ -100,7 +180,7 @@ export type Student = z.infer<typeof studentSchema>;
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type UpdateStudent = z.infer<typeof updateStudentSchema>;
 
-// Analytics data types (for dummy data)
+// Analytics data types (for dummy data and backward compatibility)
 export interface ProblemStats {
   total: number;
   easy: number;
@@ -111,19 +191,19 @@ export interface ProblemStats {
 }
 
 export interface ContestStats {
-  leetcode: {
+  leetcode?: {
     currentRating: number;
     highestRating: number;
     totalContests: number;
     ratingHistory: { date: string; rating: number }[];
   };
-  codechef: {
+  codechef?: {
     currentRating: number;
     highestRating: number;
     totalContests: number;
     ratingHistory: { date: string; rating: number }[];
   };
-  codeforces: {
+  codeforces?: {
     currentRating: number;
     highestRating: number;
     totalContests: number;
