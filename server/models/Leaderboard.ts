@@ -31,10 +31,10 @@ export interface LeaderboardDocument {
 
 const leaderboardSchema = new Schema<LeaderboardDocument>(
   {
-    scope: { type: String, required: true },
+    scope: { type: String, required: true, enum: ['overall', 'platform'] },
     platform: { type: String, default: null },
     generatedAt: { type: Date, required: true },
-    entries: { type: Array, default: [] },
+    entries: { type: Array, default: [], validate: { validator: validateEntries, message: 'Invalid entries' } },
   },
   {
     timestamps: true,
