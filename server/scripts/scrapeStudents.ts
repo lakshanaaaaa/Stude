@@ -17,7 +17,12 @@ interface StudentUsernameMap {
  * Scrapes data for all students or specific students
  */
 export async function scrapeAllStudents(usernames?: StudentUsernameMap[]) {
-  await connectMongoDB();
+  const mongoUrl = process.env.MONGO_URL;
+const mongoOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+};
+await connectMongoDB(mongoUrl, mongoOptions);
   const storage = new MongoStorage();
 
   // Get all students from database
