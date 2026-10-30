@@ -27,7 +27,7 @@ async function createAdmin() {
     const newAdmin = await storage.createUser(adminUser);
     console.log(`✅ Admin user created successfully`);
     console.log(`Username: ${adminUser.username}`);
-    console.log(`Password: ${adminUser.password}`);
+    console.log(`Password: *****`);
   } catch (error) {
     console.error("❌ Error creating admin:", error);
   }
