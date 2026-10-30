@@ -26,14 +26,14 @@ export default function JDMatcher() {
     e.preventDefault();
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = getSecureToken(); // Implement a secure token storage mechanism
       const resp = await fetch('/api/match', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ jd, topN }),
+        body: JSON.stringify({ jd: validateInput(jd), topN: validateInput(topN) }), // Implement input validation
       });
       const data = await resp.json();
       setResults(data.matches || []);
