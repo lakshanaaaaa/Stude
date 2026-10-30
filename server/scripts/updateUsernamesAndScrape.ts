@@ -17,7 +17,7 @@ interface StudentUsernameMap {
  * Usage: Provide a JSON file or array of username mappings
  */
 export async function updateUsernamesAndScrape(usernameMappings: StudentUsernameMap[]) {
-  await connectMongoDB();
+  try { await connectMongoDB(); } catch (error) { console.error('Error connecting to MongoDB:', error); process.exit(1); }
   const storage = new MongoStorage();
 
   console.log(`\n🔄 Updating usernames and scraping data for ${usernameMappings.length} students...\n`);
