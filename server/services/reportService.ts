@@ -42,7 +42,8 @@ export interface ReportData {
 }
 
 // Track scraping progress
-let scrapeProgress: ScrapeProgress = {
+let scrapeProgress: ScrapeProgress = {};
+// Implement authorization checks to secure access to scrapeProgress
   total: 0,
   completed: 0,
   current: "",
