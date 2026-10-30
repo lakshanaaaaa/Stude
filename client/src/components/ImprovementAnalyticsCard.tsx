@@ -39,7 +39,7 @@ interface ImprovementAnalyticsCardProps {
 }
 
 export function ImprovementAnalyticsCard({ analytics }: ImprovementAnalyticsCardProps) {
-  const { totalUsers, improvedUsers, notImprovedUsers, improvementPercentage, platformBreakdown, userDetails } = analytics;
+  const sanitizedAnalytics = JSON.parse(JSON.stringify(analytics)); // Sanitize analytics data
   const [showImproved, setShowImproved] = useState(false);
   const [showNotImproved, setShowNotImproved] = useState(false);
 
