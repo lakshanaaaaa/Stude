@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "axios@^1.2.0";
 import * as cheerio from "cheerio";
 import type { ProblemStats, ContestStats, Badge } from "@shared/schema";
 
@@ -8,10 +8,10 @@ export async function scrapeGeeksforGeeks(username: string): Promise<{
   badges: Badge[];
 }> {
   try {
-    const profileUrl = `https://www.geeksforgeeks.org/user/${username}/`;
+    const profileUrl = `https://www.geeksforgeeks.org/user/${encodeURIComponent(username)}/`;
     const response = await axios.get(profileUrl, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-      timeout: 10000,
+      headers: { "User-Agent": `Custom User Agent ${version}` },
+      timeout: 30000,
     });
 
     const $ = cheerio.load(response.data);
