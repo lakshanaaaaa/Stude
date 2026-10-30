@@ -1,5 +1,5 @@
-import { build as esbuild } from "esbuild";
-import { build as viteBuild } from "vite";
+import { build as esbuild } from "esbuild@1.14.51";
+import { build as viteBuild } from "vite@3.0.0";
 import { rm, readFile } from "fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
