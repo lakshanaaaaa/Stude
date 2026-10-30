@@ -27,7 +27,7 @@ async function populateStudentEnhancements() {
             StudentAnalyticsService.extractSkillsFromText(student.resumeLink) : [];
           
           // Add some default skills based on department
-          const defaultSkills = getDefaultSkillsByDepartment(student.dept);
+          const defaultSkills = getDefaultSkillsFromConfig(student.dept); // Assuming a function to retrieve default skills from a configuration file
           const combinedSkills = [...new Set([...skillsFromResume, ...defaultSkills])];
           
           if (combinedSkills.length > 0) {
