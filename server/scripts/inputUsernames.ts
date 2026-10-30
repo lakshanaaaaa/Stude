@@ -26,8 +26,8 @@ async function main() {
 
   try {
     console.log(`📖 Reading username mappings from ${jsonFile}...`);
-    const fileContent = readFileSync(jsonFile, "utf-8");
-    const usernameMappings: StudentUsernameMap[] = JSON.parse(fileContent);
+    const fileContent = readFileSync(jsonFile, "utf-8"); try { JSON.parse(fileContent); } catch (error) { console.error('Error parsing JSON file:', error); process.exit(1); }
+    const usernameMappings: StudentUsernameMap[] = JSON.parse(fileContent, (key, value) => { if (typeof value === 'object') { return Object.keys(value).reduce((acc, k) => ({ ...acc, [k]: value[k] }), {}); } return value; });
 
     if (!Array.isArray(usernameMappings)) {
       throw new Error("JSON file must contain an array of username mappings");
