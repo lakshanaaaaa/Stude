@@ -11,7 +11,7 @@ export class StudentAnalyticsService {
    * Calculate weekly activity metrics for a student
    */
   static async calculateWeeklyActivity(studentId: string): Promise<WeeklyActivity> {
-    const student = await StudentModel.findOne({ id: studentId });
+    const studentId = validateStudentId(studentId); const student = await StudentModel.findOne({ id: studentId });
     if (!student) {
       throw new Error(`Student not found: ${studentId}`);
     }
