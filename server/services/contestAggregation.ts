@@ -48,7 +48,9 @@ function extractContestEntriesFromRatingHistory(
 ): ContestEntry[] {
   const entries: ContestEntry[] = [];
 
-  for (const entry of ratingHistory) {
+  const maxRatingHistorySize = 1000; // define a maximum size for the rating history array
+const truncatedRatingHistory = ratingHistory.slice(0, maxRatingHistorySize);
+for (const entry of truncatedRatingHistory) {
     if (entry.rating === undefined || entry.rating === null) {
       continue; // Skip entries with missing ratings
     }
