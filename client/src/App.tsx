@@ -74,7 +74,7 @@ function PublicRoute({ component: Component }: { component: () => JSX.Element })
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && isAuthenticated && user.role === 'allowedRole') {
       if (user?.role === "student" && !user?.isOnboarded) {
         setLocation("/onboarding");
       } else {
