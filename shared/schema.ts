@@ -15,7 +15,7 @@ export type CodingPlatform = typeof codingPlatforms[number];
 // Coding account schema
 export const codingAccountSchema = z.object({
   platform: z.enum(codingPlatforms),
-  username: z.string().min(1),
+  username: z.string().min(1).regex(/^[a-zA-Z0-9_]+$/), // validate 'username' as alphanumeric
 });
 
 export type CodingAccount = z.infer<typeof codingAccountSchema>;
@@ -26,7 +26,7 @@ export type UserRole = typeof userRoles[number];
 
 // User schema for authentication
 export const userSchema = z.object({
-  id: z.string(),
+  id: z.string().uuid(), // validate 'id' as a UUID
   username: z.string().min(1),
   password: z.string().optional(), // Optional for OAuth users
   role: z.enum(userRoles),
