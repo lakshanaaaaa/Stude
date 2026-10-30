@@ -58,7 +58,7 @@ export const getQueryFn: <T>(options: {
       headers,
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+    try { ... } catch (error) { handleErrorMessage(error); }
       return null;
     }
 
