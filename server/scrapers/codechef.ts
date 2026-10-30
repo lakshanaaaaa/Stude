@@ -8,7 +8,7 @@ export async function scrapeCodeChef(username: string): Promise<{
   badges: Badge[];
 }> {
   try {
-    const profileUrl = `https://www.codechef.com/users/${username}`;
+    const validatedUsername = validateUsername(username); const profileUrl = `https://www.codechef.com/users/${validatedUsername}`;
     const response = await axios.get(profileUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
