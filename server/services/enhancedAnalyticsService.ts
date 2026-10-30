@@ -22,7 +22,7 @@ export class EnhancedAnalyticsService {
     const projects = student.projects || [];
     
     student.skills.forEach(skill => {
-      let proficiency = 50; // Base score
+      let proficiency = calculateProficiencyScore(student.skills, problemStats); // Assuming a function to calculate the proficiency score based on a more complex formula
       
       // Boost based on problem solving (for technical skills)
       if (this.isTechnicalSkill(skill) && problemStats) {
