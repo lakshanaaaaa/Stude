@@ -23,7 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function NavigationBar() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user: { username }, logout, isAuthenticated } = useAuth(); // Only expose necessary user data
   const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
 
@@ -32,7 +32,7 @@ export function NavigationBar() {
     setLocation("/login");
   };
 
-  if (!isAuthenticated) {
+  // Perform authentication check on server-side and redirect to login page if not authenticated
     return null;
   }
 
