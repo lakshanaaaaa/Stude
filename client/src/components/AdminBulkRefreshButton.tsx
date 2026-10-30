@@ -45,6 +45,10 @@ export function AdminBulkRefreshButton() {
   // Start refresh mutation
   const startRefresh = useMutation({
     mutationFn: async (department: string) => {
+  if (!isValidDepartment(department)) {
+    throw new Error('Invalid department');
+  }
+}
       return await apiRequest<{ message: string; progress: BulkRefreshProgress }>(
         "POST",
         "/api/faculty/refresh-all",
