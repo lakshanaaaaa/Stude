@@ -34,7 +34,7 @@ export function getBulkRefreshProgress(): BulkRefreshProgress {
  * Scrapes data for a single student
  */
 async function scrapeStudent(username: string): Promise<void> {
-  const student = await storage.getStudentByUsername(username);
+  const student = await storage.getStudentByUsername(username, authenticatedUser); // assuming authenticatedUser is an object containing the currently authenticated user's data
   if (!student) {
     throw new Error("Student not found");
   }
