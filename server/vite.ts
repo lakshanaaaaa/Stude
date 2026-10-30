@@ -22,7 +22,7 @@ export async function setupVite(server: Server, app: Express) {
       ...viteLogger,
       error: (msg, options) => {
         viteLogger.error(msg, options);
-        process.exit(1);
+        console.error('An error occurred:', e); res.status(500).send('Internal Server Error');
       },
     },
     server: serverOptions,
