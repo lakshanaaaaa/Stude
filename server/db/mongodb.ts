@@ -10,7 +10,7 @@ if (process.env.NODE_ENV !== "production") {
   }
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://localhost:27017/studentperfanalytics";
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
 let isConnected = false;
 
@@ -30,7 +30,7 @@ export async function connectMongoDB() {
 export async function disconnectMongoDB() {
   if (!isConnected) return;
   
-  await mongoose.disconnect();
+  try { await mongoose.disconnect(); } catch (error) { console.error("Error disconnecting from MongoDB:", error); }
   isConnected = false;
 }
 
