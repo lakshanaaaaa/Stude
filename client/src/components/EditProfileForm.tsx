@@ -23,7 +23,7 @@ import { Plus, Trash2, Save, Loader2 } from "lucide-react";
 import { codingPlatforms, type Student, type CodingPlatform } from "@shared/schema";
 
 const editProfileSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
+  email: z.string().email("Please enter a valid email").refine((email) => !email.includes("\n"), { message: "Email address contains invalid characters" }),
   dept: z.string().min(1, "Department is required"),
   linkedin: z.string().url("Please enter a valid URL").or(z.literal("")),
   github: z.string().url("Please enter a valid URL").or(z.literal("")),
