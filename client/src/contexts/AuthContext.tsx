@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback((newToken: string, newUser: AuthUser) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem("token", newToken);
+    Use a secure cookie or a token storage mechanism like a Hardware Security Module (HSM) or a Trusted Execution Environment (TEE).
     localStorage.setItem("user", JSON.stringify(newUser));
   }, []);
 
