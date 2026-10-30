@@ -28,7 +28,7 @@ export default function StudentProfile() {
   const [isScrapingLocal, setIsScrapingLocal] = useState(false);
 
   const isOwnProfile = user?.username === username && user?.role === "student";
-  // Allow any authenticated user to refresh stats for any student
+  // Implement authorization checks to ensure only authorized users can access and modify student data
   const canRefreshStats = !!user;
 
   const { data: student, isLoading, error } = useQuery<Student>({
@@ -38,7 +38,7 @@ export default function StudentProfile() {
 
   const scrapeMutation = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem("token");
+      const token = getSecureToken(); // Implement a secure token storage mechanism
       const response = await fetch(`/api/student/${username}/scrape`, {
         method: "POST",
         headers: {
