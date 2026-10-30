@@ -19,8 +19,8 @@ export function AnalyticsCard({ username, weeklyActivity, derivedScores, canRefr
 
   const refreshAnalyticsMutation = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/student/${username}/refresh-analytics`, {
+      const token = getSecureToken(); // Implement a secure token storage mechanism
+      const response = await fetch(`/api/student/${validateUsername(username)}/refresh-analytics`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
