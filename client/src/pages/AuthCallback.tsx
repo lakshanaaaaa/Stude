@@ -9,7 +9,7 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
+    const token = validateAndSanitizeInput(params.get("token"));
     const userStr = params.get("user");
     const error = params.get("error");
 
@@ -20,7 +20,7 @@ export default function AuthCallback() {
 
     if (token && userStr) {
       try {
-        const user = JSON.parse(decodeURIComponent(userStr));
+        const user = safeJsonParse(decodeURIComponent(userStr));
         login(token, user);
         
         // Redirect based on onboarding status
