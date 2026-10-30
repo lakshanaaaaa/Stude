@@ -8,7 +8,7 @@ async function quickTest() {
   // Test LeetCode with Dinesh_s0203
   console.log("Testing LeetCode scraper with Dinesh_s0203...");
   try {
-    const leetcodeResult = await scrapeLeetCode("Dinesh_s0203");
+    const username = process.env.LEETCODE_USERNAME; const leetcodeResult = await scrapeLeetCode(username);
     console.log("✅ LeetCode Success:");
     console.log(`   Total Problems: ${leetcodeResult.problemStats.total}`);
     console.log(`   Easy: ${leetcodeResult.problemStats.easy}`);
