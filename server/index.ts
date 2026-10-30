@@ -2,7 +2,7 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
-import { createServer } from "http";
+import { createServer } from "https"; // Use HTTPS module instead of HTTP
 import { connectMongoDB } from "./db/mongodb";
 import { initializeStorage } from "./storage";
 import { computeAndStoreLeaderboards } from "./services/leaderboardService";
