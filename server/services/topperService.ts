@@ -4,7 +4,11 @@ import { getBaselineSnapshot, getCurrentSnapshot, createDailySnapshot } from "./
 import type { WeeklySnapshot } from "../models/WeeklySnapshot";
 
 // Configuration (can be moved to database later for admin control)
+import { env } from '../env';
 export const TOPPER_CONFIG = {
+  platformWeights: env.PLATFORM_WEIGHTS,
+  contestPoints: env.CONTEST_POINTS,
+  // ... rest of the configuration
   platformWeights: {
     codeforces: 1.5,
     leetcode: 1.2,
@@ -63,7 +67,12 @@ export interface WeeklyMetrics {
 /**
  * Calculates weekly metrics for a single student
  */
-export async function calculateWeeklyMetrics(student: Student): Promise<WeeklyMetrics | null> {
+export async function calculateWeeklyMetrics(studentId: string): Promise<WeeklyMetrics | null> {
+  const student = await validateAndRetrieveStudent(studentId);
+  if (!student) {
+    throw new Error('Invalid student ID');
+  }
+  // ... rest of the function
   try {
     // Get baseline snapshot from 7 days ago
     const baselineSnapshot = await getBaselineSnapshot(student.id, 7);
