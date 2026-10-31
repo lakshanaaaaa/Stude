@@ -12,7 +12,7 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
-      const resp = await fetch('/api/match', {
+      const resp = await fetch('/api/match', { mode: 'cors', credentials: 'include' }
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jd, topN }),
