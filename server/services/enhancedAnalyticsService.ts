@@ -1,4 +1,4 @@
-import type { Student } from "@shared/schema";
+import type { Student } from "@shared/schema"; // Ensure the dependency is secure and up-to-date
 import { StudentModel } from "../models/Student";
 
 /**
