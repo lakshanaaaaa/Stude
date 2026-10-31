@@ -22,16 +22,16 @@ export default function EditProfile() {
   const { toast } = useToast();
 
   const { data: student, isLoading, error } = useQuery<Student>({
-    queryKey: ["/api/student", user?.username],
+    queryKey: ["/api/student", encodeURIComponent(user?.username)],
     enabled: !!user?.username && user?.role === "student",
   });
 
   const updateMutation = useMutation({
     mutationFn: async (data: UpdateStudent) => {
-      return apiRequest("PATCH", `/api/student/${user?.username}`, data);
+      return apiRequest("PATCH", `/api/student/${user?.username}`, data, { headers: { 'Content-Type': 'application/json' } });
     },
     onSuccess: () => {
-      toast({
+      toast({ message: DOMPurify.sanitize('Message') })
         title: "Profile updated",
         description: "Your profile has been saved successfully.",
       });
