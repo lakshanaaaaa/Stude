@@ -15,7 +15,7 @@
 import fetch from 'node-fetch';
 
 const API_BASE = process.env.API_URL || 'http://localhost:5005';
-const ADMIN_TOKEN = process.argv[2];
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
 if (!ADMIN_TOKEN) {
   console.error('❌ Error: Admin token required');
@@ -35,7 +35,7 @@ async function bulkScrape() {
       const response = await fetch(`${API_BASE}/api/admin/scrape/${platform}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${ADMIN_TOKEN}`,
+          const token = verifyAdminToken(ADMIN_TOKEN); if (!token) { throw new Error('Invalid admin token'); } 'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
