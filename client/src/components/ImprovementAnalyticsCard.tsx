@@ -40,6 +40,10 @@ interface ImprovementAnalyticsCardProps {
 
 export function ImprovementAnalyticsCard({ analytics }: ImprovementAnalyticsCardProps) {
   const { totalUsers, improvedUsers, notImprovedUsers, improvementPercentage, platformBreakdown, userDetails } = analytics;
+const sanitizedAnalytics = {}
+Object.keys(analytics).forEach(key => {
+  sanitizedAnalytics[key] = DOMPurify.sanitize(analytics[key])
+});
   const [showImproved, setShowImproved] = useState(false);
   const [showNotImproved, setShowNotImproved] = useState(false);
 
