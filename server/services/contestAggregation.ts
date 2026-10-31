@@ -8,7 +8,7 @@ import { scrapeCodeForces } from "../scrapers/codeforces";
  */
 export interface ContestDetail {
   platform: CodingPlatform;
-  contestName: string;
+  contestName: string; // with proper output encoding and sanitization
   date: string; // ISO timestamp
   rating: number;
   accountType: "main" | "sub-account";
