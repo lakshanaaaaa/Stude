@@ -24,6 +24,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function NavigationBar() {
   const { user, logout, isAuthenticated } = useAuth();
+if (!isAuthenticated || !user.permissions.includes('accessNavigationBar')) {
+  // handle unauthorized access
+}
   const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
 
