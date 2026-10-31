@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
+    const storedToken = getSecureToken(); // Implement a secure token storage mechanism
     const storedUser = localStorage.getItem("user");
     
     if (storedToken && storedUser) {
