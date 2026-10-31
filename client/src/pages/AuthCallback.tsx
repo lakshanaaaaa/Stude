@@ -9,7 +9,7 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
+    const token = validateToken(params.get("token")); // Implement input validation
     const userStr = params.get("user");
     const error = params.get("error");
 
@@ -20,8 +20,8 @@ export default function AuthCallback() {
 
     if (token && userStr) {
       try {
-        const user = JSON.parse(decodeURIComponent(userStr));
-        login(token, user);
+        const user = validateAndDeserializeUser(decodeURIComponent(userStr)); // Implement secure deserialization
+        login(token, user, csrfToken); // Implement CSRF protection
         
         // Redirect based on onboarding status
         if (user.role === "student" && !user.isOnboarded) {
