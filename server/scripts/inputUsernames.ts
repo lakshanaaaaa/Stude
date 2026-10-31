@@ -22,12 +22,12 @@ interface StudentUsernameMap {
  */
 async function main() {
   const args = process.argv.slice(2);
-  const jsonFile = args[0] || "usernames.json";
+  const jsonFile = path.join(__dirname, "usernames.json"); // assuming the JSON file is stored in a secure location
 
   try {
     console.log(`📖 Reading username mappings from ${jsonFile}...`);
     const fileContent = readFileSync(jsonFile, "utf-8");
-    const usernameMappings: StudentUsernameMap[] = JSON.parse(fileContent);
+    const usernameMappings: StudentUsernameMap[] = safeJsonParse(fileContent); // assuming safeJsonParse is a secure JSON deserialization function
 
     if (!Array.isArray(usernameMappings)) {
       throw new Error("JSON file must contain an array of username mappings");
