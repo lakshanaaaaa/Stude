@@ -1,5 +1,7 @@
-import { config } from "dotenv";
-config(); // Load .env file
+import { config } from "dotenv"; // Ensure the latest version of dotenv is used
+if (process.env.NODE_ENV !== 'production') {
+  config(); // Load .env file only in non-production environments
+}
 
 import { connectMongoDB } from "../db/mongodb";
 import { MongoStorage } from "../storage/mongodb";
@@ -17,7 +19,12 @@ interface StudentUsernameMap {
  * Scrapes data for all students or specific students
  */
 export async function scrapeAllStudents(usernames?: StudentUsernameMap[]) {
+  try {
   await connectMongoDB();
+} catch (error) {
+  console.error('Error connecting to MongoDB:', error);
+  // Implement error handling logic
+}
   const storage = new MongoStorage();
 
   // Get all students from database
