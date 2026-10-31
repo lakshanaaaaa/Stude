@@ -25,13 +25,13 @@ export function SkillsManager({ username, skills, canEdit }: SkillsManagerProps)
   const updateSkillsMutation = useMutation({
     mutationFn: async (updatedSkills: string[]) => {
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/student/${username}/skills`, {
+      try { const response = await fetch(`/api/student/${username}/skills`, { ... } catch (error) { handleFetchError(error); } // implement error handling
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ skills: updatedSkills }),
+        body: JSON.stringify({ skills: validateSkills(updatedSkills) }), // implement input validation
       });
       if (!response.ok) {
         const error = await response.json();
