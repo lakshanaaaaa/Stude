@@ -14,7 +14,7 @@ const platformColors: Record<CodingPlatform, string> = {
 };
 
 const platformUrls: Record<CodingPlatform, (username: string) => string> = {
-  LeetCode: (u) => `https://leetcode.com/${u}`,
+  LeetCode: (u) => `https://leetcode.com/${encodeURIComponent(u)}`,
   CodeChef: (u) => `https://codechef.com/users/${u}`,
   CodeForces: (u) => `https://codeforces.com/profile/${u}`,
   GeeksforGeeks: (u) => `https://auth.geeksforgeeks.org/user/${u}`,

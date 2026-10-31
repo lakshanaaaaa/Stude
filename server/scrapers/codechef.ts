@@ -16,7 +16,7 @@ export async function scrapeCodeChef(username: string): Promise<{
       timeout: 30000,
     });
 
-    const $ = cheerio.load(response.data);
+    const $ = cheerio.load(response.data, { decodeEntities: false });
 
     let totalSolved = 0;
     

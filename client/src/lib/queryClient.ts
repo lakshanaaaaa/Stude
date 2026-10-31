@@ -23,7 +23,7 @@ export async function apiRequest<T = unknown>(
     headers["Authorization"] = `Bearer ${token}`;
   }
   
-  const res = await fetch(url, {
+  const res = await fetch(url, { validateStatus: true }); // Implement response validation
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,

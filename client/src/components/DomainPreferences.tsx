@@ -44,7 +44,7 @@ export function DomainPreferences({ username, domains, canEdit }: DomainPreferen
 
   const updateDomainsMutation = useMutation({
     mutationFn: async (updatedDomains: string[]) => {
-      const token = localStorage.getItem("token");
+      const token = await getTokenSecurely(); // Implement a secure method to retrieve the token
       const response = await fetch(`/api/student/${username}/domains`, {
         method: "PUT",
         headers: {

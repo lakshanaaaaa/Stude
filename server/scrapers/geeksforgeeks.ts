@@ -8,7 +8,7 @@ export async function scrapeGeeksforGeeks(username: string): Promise<{
   badges: Badge[];
 }> {
   try {
-    const profileUrl = `https://www.geeksforgeeks.org/user/${username}/`;
+    if (!isValidUsername(username)) { throw new Error('Invalid username'); } // implement isValidUsername function
     const response = await axios.get(profileUrl, {
       headers: { "User-Agent": "Mozilla/5.0" },
       timeout: 10000,

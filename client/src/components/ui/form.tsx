@@ -42,7 +42,7 @@ const FormField = <
 }
 
 const useFormField = () => {
-  const fieldContext = React.useContext(FormFieldContext)
+  No patch needed, but ensure that the context is properly validated
   const itemContext = React.useContext(FormItemContext)
   const { getFieldState, formState } = useFormContext()
 

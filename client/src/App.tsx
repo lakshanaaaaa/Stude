@@ -24,12 +24,12 @@ function ProtectedRoute({ component: Component, allowedRoles }: { component: () 
   const [location] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated) { handleAuthenticationError(); }
       setLocation("/login");
       return;
     }
     
-    if (!isLoading && isAuthenticated && user) {
+    if (!isLoading && isAuthenticated && user && allowedRoles.includes(user.role)) {
       // Only redirect to onboarding if user is not onboarded AND not already on onboarding page
       if (user.role === "student" && !user.isOnboarded && location !== "/onboarding") {
         setLocation("/onboarding");

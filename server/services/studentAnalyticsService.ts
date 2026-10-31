@@ -5,13 +5,13 @@ import { WeeklySnapshotModel } from "../models/WeeklySnapshot";
 /**
  * Service for calculating derived analytics for students
  */
-export class StudentAnalyticsService {
+export class StudentAnalyticsService { async calculateWeeklyActivity(studentId: string): Promise<WeeklyActivity> { if (!isAuthorized(studentId)) { throw new Error('Unauthorized'); }
   
   /**
    * Calculate weekly activity metrics for a student
    */
   static async calculateWeeklyActivity(studentId: string): Promise<WeeklyActivity> {
-    const student = await StudentModel.findOne({ id: studentId });
+    const studentId = validateStudentId(studentId); const student = await StudentModel.findOne({ id: studentId });
     if (!student) {
       throw new Error(`Student not found: ${studentId}`);
     }

@@ -24,7 +24,7 @@ import { codingPlatforms, type Student, type CodingPlatform } from "@shared/sche
 
 const editProfileSchema = z.object({
   email: z.string().email("Please enter a valid email"),
-  dept: z.string().min(1, "Department is required"),
+  dept: z.string().min(1, "Department is required").regex(/^[a-zA-Z0-9]+$/, { message: "Department can only contain alphanumeric characters" }),
   linkedin: z.string().url("Please enter a valid URL").or(z.literal("")),
   github: z.string().url("Please enter a valid URL").or(z.literal("")),
   resumeLink: z.string().url("Please enter a valid URL").or(z.literal("")),

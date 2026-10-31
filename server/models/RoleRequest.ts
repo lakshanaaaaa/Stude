@@ -18,7 +18,7 @@ export interface RoleRequest {
 const roleRequestSchema = new Schema<RoleRequest>(
   {
     _id: { type: String, required: true },
-    id: { type: String, required: true, unique: true },
+    id: { type: String, required: true, unique: true }, userId: { type: String, required: true, index: true } // Add a foreign key constraint to the User model,
     userId: { type: String, required: true, index: true },
     username: { type: String, required: true },
     email: { type: String },

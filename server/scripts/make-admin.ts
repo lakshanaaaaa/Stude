@@ -45,7 +45,7 @@ async function makeUserAdmin(email: string) {
 }
 
 // Get email from command line argument
-const email = process.argv[2] || "dineshsenathipathi@gmail.com";
+const email = process.argv[2]; if (!email || !email.includes("@")) { console.error("Invalid email address"); process.exit(1); }
 
 console.log(`Making user with email ${email} an admin...`);
 makeUserAdmin(email);

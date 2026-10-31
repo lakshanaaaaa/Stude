@@ -10,7 +10,7 @@ import { Plus, X, FileText, User, Briefcase } from "lucide-react";
 
 interface ManualDataCollectionProps {
   username: string;
-  onDataCollected: (data: {
+  onDataCollected: (data: { // Implement input validation and sanitization
     skills: string[];
     domains: string[];
     projects: any[];

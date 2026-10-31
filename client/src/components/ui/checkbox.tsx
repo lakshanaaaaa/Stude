@@ -1,5 +1,5 @@
 import * as React from "react"
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox" // Ensure @radix-ui/react-checkbox is up-to-date
 import { Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"

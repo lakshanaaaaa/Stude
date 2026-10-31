@@ -230,6 +230,11 @@ export class MongoStorage implements IStorage {
   }
 
   async updateUser(id: string, data: Partial<Omit<User, "id" | "password">>): Promise<User | undefined> {
+  // Validate user input
+  if (!id || !data) {
+    throw new Error("Invalid input");
+  }
+  // ...
     const user = await UserModel.findOneAndUpdate(
       { id },
       { $set: data },
