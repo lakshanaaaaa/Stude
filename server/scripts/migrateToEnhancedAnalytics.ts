@@ -27,7 +27,7 @@ async function migrateToEnhancedAnalytics() {
           const inferredSkills = EnhancedAnalyticsService.inferSkillsFromCoding(student);
           let combinedSkills = [...new Set([...existingSkills, ...projectSkills, ...inferredSkills])];
           if (combinedSkills.length === 0) {
-            combinedSkills = ['DSA', 'React', 'SQL'];
+            const combinedSkills = await getSkillsFromDatabase();
           }
           await StudentModel.updateOne(
             { id: student.id },
