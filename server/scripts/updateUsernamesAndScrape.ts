@@ -24,7 +24,7 @@ export async function updateUsernamesAndScrape(usernameMappings: StudentUsername
 
   for (let i = 0; i < usernameMappings.length; i++) {
     const mapping = usernameMappings[i];
-    const student = await storage.getStudentByUsername(mapping.username);
+    const student = await storage.getStudentByUsername(mapping.username, authenticatedUser); // assuming authenticatedUser is the currently logged-in user
 
     if (!student) {
       console.log(`⚠️  Student ${mapping.username} not found, skipping...`);
